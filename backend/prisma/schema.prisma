@@ -10,6 +10,9 @@
 
 generator client {
   provider = "prisma-client-js"
+  // Pinned to the target machine (MacBook Air M3). Also lets type generation run in
+  // sandboxed CI/dev environments where Prisma's engine CDN is unreachable.
+  binaryTargets = ["darwin-arm64"]
 }
 
 datasource db {
@@ -47,9 +50,10 @@ model ContentIdea {
 }
 
 model PlatformPost {
-  id                   String      @id @default(uuid()) @db.Uuid
-  contentIdeaId        String      @map("content_idea_id") @db.Uuid
-  idea                 ContentIdea @relation(fields: [contentIdeaId], references: [id])
+  id                   String           @id @default(uuid()) @db.Uuid
+  contentIdeaId        String           @map("content_idea_id") @db.Uuid
+  idea                 ContentIdea      @relation(fields: [contentIdeaId], references: [id])
+  events               AdherenceEvent[]
   platform             Platform    @default(linkedin)
   format               Format      @default(text_post)
   caption              String      @default("")
@@ -65,4 +69,38 @@ model PlatformPost {
   @@index([targetDatetime])
   @@index([contentIdeaId])
   @@map("platform_post")
+}
+
+// ADR-5: append-only log of USER ACTIONS only — derived detections (Due reached, grace expired)
+// are read-time findings and are never logged. Substrate for Weekly Review (Phase 2). No UI in v0.2a.
+enum AdherenceEventType {
+  created
+  target_edited
+  marked_ready
+  marked_posted
+  actual_edited
+  missed_acknowledged
+}
+
+model AdherenceEvent {
+  id             String             @id @default(uuid()) @db.Uuid
+  platformPostId String             @map("platform_post_id") @db.Uuid
+  post           PlatformPost       @relation(fields: [platformPostId], references: [id])
+  eventType      AdherenceEventType @map("event_type")
+  at             DateTime           @default(now()) @db.Timestamptz(6)
+  oldValue       String?            @map("old_value")
+  newValue       String?            @map("new_value")
+
+  @@index([platformPostId])
+  @@map("adherence_event")
+}
+
+// D-32/D-33: one-row table; targets are data, not settings. NULL = no target for that period.
+model PostingTarget {
+  id           Int      @id @default(1)
+  dailyTarget  Int?     @map("daily_target")
+  weeklyTarget Int?     @map("weekly_target")
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("posting_target")
 }

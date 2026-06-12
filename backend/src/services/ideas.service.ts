@@ -11,19 +11,27 @@ export interface CreateIdeaInput {
 }
 
 export async function createIdeaWithPost(input: CreateIdeaInput, now: Date): Promise<PostView> {
-  // Nested create = single transactional statement; no partial idea-without-post possible.
-  const idea = await prisma.contentIdea.create({
-    data: {
-      title: input.title,
-      coreMessage: input.coreMessage,
-      posts: {
-        create: {
-          platform: 'linkedin',
-          format: 'text_post',
+  // One transaction: idea + derived post + 'created' event (ADR-5).
+  const idea = await prisma.$transaction(async (tx) => {
+    const created = await tx.contentIdea.create({
+      data: {
+        title: input.title,
+        coreMessage: input.coreMessage,
+        posts: {
+          create: {
+            platform: 'linkedin',
+            format: 'text_post',
+          },
         },
       },
-    },
-    include: { posts: true },
+      include: { posts: true },
+    });
+    const post = created.posts[0];
+    if (!post) throw new Error('Invariant violated: idea created without its derived post');
+    await tx.adherenceEvent.create({
+      data: { platformPostId: post.id, eventType: 'created', at: now, newValue: 'linkedin/text_post' },
+    });
+    return created;
   });
 
   const post = idea.posts[0];

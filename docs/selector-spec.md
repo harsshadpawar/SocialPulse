@@ -143,3 +143,31 @@ Selector — `posts[]` + `now` injected:
 
 *Spec is authority for `domain/selector.ts`, `postingStatus.ts`, `adherence.ts`. If code and
 spec disagree, fix one — deliberately.*
+
+---
+
+## v0.2a amendment (decisions D-30/D-31 — docs/decisions-v0.2a.md)
+
+**Draft sub-state (derived, Draft only):**
+
+| Rule (first match) | Sub-state |
+|---|---|
+| readiness != draft or posted | — (null) |
+| caption blank | `needs_caption` |
+| target null | `needs_schedule` |
+| otherwise | `ready_to_mark` |
+
+**Due-but-not-ready flag:** `dueNotReady = status == due ∧ readiness == draft`. cardState stays `draft`;
+copy changes. Selector ordering UNCHANGED — a draft that is due was already class 1.
+
+**Golden additions:**
+
+| # | Scenario | Expected |
+|---|---|---|
+| D14 | draft, caption blank | subState needs_caption |
+| D15 | draft, caption set, no target | subState needs_schedule |
+| D16 | draft, caption + target set | subState ready_to_mark |
+| D17 | ready post | subState null |
+| D18 | draft, now within [target, target+grace] | status due · cardState draft · dueNotReady true |
+| D19 | draft, grace lapsed | status missed · dueNotReady false (missed copy governs) |
+| S15 | draft-due + ready-planned-today | draft-due wins (class 1 — unchanged ordering proof) |

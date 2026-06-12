@@ -4,8 +4,9 @@ import { deriveAdherence } from '../domain/adherence';
 import { deriveCapabilities } from '../domain/capabilities';
 import { deriveCardState, selectTodayPost } from '../domain/selector';
 import { derivePostingStatus } from '../domain/postingStatus';
+import { deriveDraftSubState, deriveDueNotReady } from '../domain/subState';
 import { isSameDay } from '../domain/time';
-import type { AdherenceStatus, Capabilities, CardState, DomainPost, Format, Platform, PostingStatus, Readiness } from '../domain/types';
+import type { AdherenceStatus, Capabilities, CardState, DomainPost, DraftSubState, Format, Platform, PostingStatus, Readiness } from '../domain/types';
 import { prisma } from '../db/client';
 
 /** Wire DTO — dates as ISO strings, everything derived server-side (ADR-3). */
@@ -24,6 +25,10 @@ export interface PostView {
   nativePostUrl: string | null;
   graceWindowMinutes: number;
   cardState: CardState;
+  /** v0.2a (D-30): derived refinement of Draft; null for non-drafts. */
+  draftSubState: DraftSubState | null;
+  /** v0.2a (D-31): the key failure mode — due while still draft. */
+  dueNotReady: boolean;
   capabilities: Capabilities;
 }
 
@@ -86,6 +91,8 @@ export function toView(post: DomainPost, now: Date): PostView {
     nativePostUrl: post.nativePostUrl,
     graceWindowMinutes: post.graceWindowMinutes,
     cardState: deriveCardState(post, now),
+    draftSubState: deriveDraftSubState(post),
+    dueNotReady: deriveDueNotReady(post, now),
     capabilities: deriveCapabilities(post, now),
   };
 }

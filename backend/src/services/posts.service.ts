@@ -71,19 +71,50 @@ export async function updatePost(id: string, input: UpdatePostInput, now: Date):
     throw new AppError(400, 'invalid_pair', `${format} is not the v0.1 format for ${platform}.`);
   }
 
-  const updated = await prisma.platformPost.update({
-    where: { id },
-    data: {
-      platform,
-      format,
-      ...(input.caption !== undefined ? { caption: input.caption } : {}),
-      ...(input.targetDatetime !== undefined
-        ? { targetDatetime: input.targetDatetime === null ? null : new Date(input.targetDatetime) }
-        : {}),
-      ...(input.actualDatetime !== undefined ? { actualDatetime: new Date(input.actualDatetime) } : {}),
-      ...(input.nativePostUrl !== undefined ? { nativePostUrl: input.nativePostUrl } : {}),
-    },
-    include: { idea: true },
+  // ADR-5: adherence-relevant edits are logged in the same transaction.
+  const newTarget =
+    input.targetDatetime !== undefined ? (input.targetDatetime === null ? null : new Date(input.targetDatetime)) : undefined;
+  const targetChanged =
+    newTarget !== undefined && (newTarget?.getTime() ?? null) !== (post.targetDatetime?.getTime() ?? null);
+  const newActual = input.actualDatetime !== undefined ? new Date(input.actualDatetime) : undefined;
+  const actualChanged = newActual !== undefined && newActual.getTime() !== post.actualDatetime?.getTime();
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const row = await tx.platformPost.update({
+      where: { id },
+      data: {
+        platform,
+        format,
+        ...(input.caption !== undefined ? { caption: input.caption } : {}),
+        ...(newTarget !== undefined ? { targetDatetime: newTarget } : {}),
+        ...(newActual !== undefined ? { actualDatetime: newActual } : {}),
+        ...(input.nativePostUrl !== undefined ? { nativePostUrl: input.nativePostUrl } : {}),
+      },
+      include: { idea: true },
+    });
+    if (targetChanged) {
+      await tx.adherenceEvent.create({
+        data: {
+          platformPostId: id,
+          eventType: 'target_edited',
+          at: now,
+          oldValue: post.targetDatetime?.toISOString() ?? null,
+          newValue: newTarget?.toISOString() ?? null,
+        },
+      });
+    }
+    if (actualChanged) {
+      await tx.adherenceEvent.create({
+        data: {
+          platformPostId: id,
+          eventType: 'actual_edited',
+          at: now,
+          oldValue: post.actualDatetime?.toISOString() ?? null,
+          newValue: newActual?.toISOString() ?? null,
+        },
+      });
+    }
+    return row;
   });
 
   return toView(toDomain(updated), now);
@@ -110,17 +141,22 @@ export async function markPosted(id: string, input: MarkPostedInput, now: Date):
   const actual = input.actualDatetime !== undefined ? new Date(input.actualDatetime) : now;
   assertNotFuture(actual, now);
 
-  const updated = await prisma.platformPost.update({
-    where: { id },
-    data: {
-      actualDatetime: actual,
-      ...(input.nativePostUrl !== undefined && input.nativePostUrl !== '' ? { nativePostUrl: input.nativePostUrl } : {}),
-    },
-    include: { idea: true },
+  const updated = await prisma.$transaction(async (tx) => {
+    const row = await tx.platformPost.update({
+      where: { id },
+      data: {
+        actualDatetime: actual,
+        ...(input.nativePostUrl !== undefined && input.nativePostUrl !== '' ? { nativePostUrl: input.nativePostUrl } : {}),
+      },
+      include: { idea: true },
+    });
+    await tx.adherenceEvent.create({
+      data: { platformPostId: id, eventType: 'marked_posted', at: now, newValue: actual.toISOString() },
+    });
+    return row;
   });
 
   const event: TransitionEvent = { type: 'PostMarkedPosted', postId: id, at: now, actualDatetime: actual };
-  // v0.2 hook: audit trail (AdherenceEvent) attaches to `event` here.
   return { post: toView(toDomain(updated), now), event };
 }
 
@@ -137,10 +173,16 @@ export async function acknowledgeMissed(id: string, now: Date): Promise<{ post: 
     throw new AppError(409, 'not_missed', 'Only a missed post can be kept as missed.');
   }
 
-  const updated = await prisma.platformPost.update({
-    where: { id },
-    data: { missedAcknowledgedAt: now },
-    include: { idea: true },
+  const updated = await prisma.$transaction(async (tx) => {
+    const row = await tx.platformPost.update({
+      where: { id },
+      data: { missedAcknowledgedAt: now },
+      include: { idea: true },
+    });
+    await tx.adherenceEvent.create({
+      data: { platformPostId: id, eventType: 'missed_acknowledged', at: now },
+    });
+    return row;
   });
 
   const event: TransitionEvent = { type: 'MissedAcknowledged', postId: id, at: now };
@@ -170,13 +212,18 @@ export async function markReady(id: string, now: Date): Promise<MarkReadyResult>
     return { ready: false, missing, post: toView(post, now), event: null };
   }
 
-  const updated = await prisma.platformPost.update({
-    where: { id },
-    data: { readiness: 'ready' },
-    include: { idea: true },
+  const updated = await prisma.$transaction(async (tx) => {
+    const row = await tx.platformPost.update({
+      where: { id },
+      data: { readiness: 'ready' },
+      include: { idea: true },
+    });
+    await tx.adherenceEvent.create({
+      data: { platformPostId: id, eventType: 'marked_ready', at: now, oldValue: 'draft', newValue: 'ready' },
+    });
+    return row;
   });
 
   const event: TransitionEvent = { type: 'PostMarkedReady', postId: id, at: now };
-  // v0.2 hook: reminder scheduling / audit log attaches to `event` here.
   return { ready: true, missing: null, post: toView(toDomain(updated), now), event };
 }

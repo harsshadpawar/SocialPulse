@@ -125,6 +125,12 @@ describe('selectTodayPost (S1–S14)', () => {
     expect(selectTodayPost([acked, draft], at('2026-06-12T19:00:00Z'), TZ)?.id).toBe(draft.id);
   });
 
+  it('S15: draft-due + ready-planned-today → draft-due wins (class 1 ordering unchanged)', () => {
+    const draftDue = mkPost({ caption: 'cap', targetDatetime: at('2026-06-12T16:20:00Z') }); // draft, in grace at 16:40Z
+    const readyLater = mkPost({ readiness: 'ready', caption: 'cap', targetDatetime: at('2026-06-12T17:30:00Z') });
+    expect(selectTodayPost([readyLater, draftDue], at('2026-06-12T16:40:00Z'), TZ)?.id).toBe(draftDue.id);
+  });
+
   it('untargeted drafts tie-break: newest createdAt first', () => {
     const older = mkPost({ createdAt: at('2026-06-10T08:00:00Z') });
     const newer = mkPost({ createdAt: at('2026-06-11T08:00:00Z') });
