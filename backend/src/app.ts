@@ -1,6 +1,7 @@
 import express from 'express';
 import type { Express } from 'express';
 import { errorHandler } from './middleware/error';
+import { todayRouter } from './routes/today.routes';
 
 export function createApp(): Express {
   const app = express();
@@ -10,7 +11,8 @@ export function createApp(): Express {
     res.json({ status: 'ok' });
   });
 
-  // M1 adds: GET /api/today
+  app.use(todayRouter);
+
   // M2 adds: POST /api/ideas
   // M3+ adds: GET/PATCH /api/posts/:id, /ready, /posted, /keep-missed
 

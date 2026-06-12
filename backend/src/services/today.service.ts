@@ -1,0 +1,96 @@
+// Service layer: fetch facts (Prisma), map to plain domain objects, derive truth (domain/),
+// shape the DTO. Prisma types never leave this layer (decision #28).
+import { deriveAdherence } from '../domain/adherence';
+import { deriveCapabilities } from '../domain/capabilities';
+import { deriveCardState, selectTodayPost } from '../domain/selector';
+import { derivePostingStatus } from '../domain/postingStatus';
+import type { AdherenceStatus, Capabilities, CardState, DomainPost, Format, Platform, PostingStatus, Readiness } from '../domain/types';
+import { prisma } from '../db/client';
+
+/** Wire DTO — dates as ISO strings, everything derived server-side (ADR-3). */
+export interface PostView {
+  id: string;
+  ideaTitle: string;
+  coreMessage: string;
+  platform: Platform;
+  format: Format;
+  caption: string;
+  targetDatetime: string | null;
+  readiness: Readiness;
+  postingStatus: PostingStatus;
+  adherenceStatus: AdherenceStatus;
+  actualDatetime: string | null;
+  nativePostUrl: string | null;
+  graceWindowMinutes: number;
+  cardState: CardState;
+  capabilities: Capabilities;
+}
+
+export interface TodayView {
+  state: CardState | 'empty';
+  post: PostView | null;
+}
+
+/** Prisma row (with idea) → plain domain object. The only place this mapping exists. */
+interface PostRowShape {
+  id: string;
+  platform: Platform;
+  format: Format;
+  caption: string;
+  targetDatetime: Date | null;
+  readiness: Readiness;
+  actualDatetime: Date | null;
+  nativePostUrl: string | null;
+  graceWindowMinutes: number;
+  missedAcknowledgedAt: Date | null;
+  createdAt: Date;
+  idea: { title: string; coreMessage: string };
+}
+
+export function toDomain(row: PostRowShape): DomainPost {
+  return {
+    id: row.id,
+    ideaTitle: row.idea.title,
+    coreMessage: row.idea.coreMessage,
+    platform: row.platform,
+    format: row.format,
+    caption: row.caption,
+    targetDatetime: row.targetDatetime,
+    readiness: row.readiness,
+    actualDatetime: row.actualDatetime,
+    nativePostUrl: row.nativePostUrl,
+    graceWindowMinutes: row.graceWindowMinutes,
+    missedAcknowledgedAt: row.missedAcknowledgedAt,
+    createdAt: row.createdAt,
+  };
+}
+
+export function toView(post: DomainPost, now: Date): PostView {
+  return {
+    id: post.id,
+    ideaTitle: post.ideaTitle,
+    coreMessage: post.coreMessage,
+    platform: post.platform,
+    format: post.format,
+    caption: post.caption,
+    targetDatetime: post.targetDatetime?.toISOString() ?? null,
+    readiness: post.readiness,
+    postingStatus: derivePostingStatus(post, now),
+    adherenceStatus: deriveAdherence(post, now),
+    actualDatetime: post.actualDatetime?.toISOString() ?? null,
+    nativePostUrl: post.nativePostUrl,
+    graceWindowMinutes: post.graceWindowMinutes,
+    cardState: deriveCardState(post, now),
+    capabilities: deriveCapabilities(post, now),
+  };
+}
+
+/** One DB round-trip per render (reviewer criterion #2). `now` injected once per request (#29). */
+export async function getTodayView(now: Date, tz: string): Promise<TodayView> {
+  const rows = await prisma.platformPost.findMany({ include: { idea: true } });
+  const posts = rows.map(toDomain);
+  const selected = selectTodayPost(posts, now, tz);
+  if (selected === null) return { state: 'empty', post: null };
+  const view = toView(selected, now);
+  return { state: view.cardState, post: view };
+}
