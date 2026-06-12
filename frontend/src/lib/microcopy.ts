@@ -1,6 +1,6 @@
 // The product's voice. Strings are VERBATIM from the handoff README + wireframes — do not edit casually.
 // Server owns state selection; this file owns the words (ADR-3 refinement).
-import type { CardState, Platform } from '../api/types';
+import type { CardState, Platform, ReadyMissing } from '../api/types';
 
 export const PLATFORM_LABEL: Record<Platform, string> = {
   linkedin: 'LinkedIn',
@@ -61,3 +61,24 @@ export const EMPTY_CTA = '+ Create idea';
 export const NEW_IDEA_LABEL = "capture — don't organize";
 export const NEW_IDEA_HEADING = "What's the idea?";
 export const NEW_IDEA_CTA = 'Next → create the LinkedIn post';
+
+/* ---- Post Editor (staged workflow) ---- */
+export const READY_CONFIRM = 'Ready to post.';
+
+/** Gentle gating guidance — caption string verbatim from the README; siblings in the same voice (#20). */
+export const READY_GUIDANCE: Record<ReadyMissing, string> = {
+  caption: 'Add a caption before marking ready.',
+  platform: 'Pick a platform before marking ready.',
+  format: 'Pick a format before marking ready.',
+  target: 'Pick a target time before marking ready.',
+};
+
+export function captionPlaceholder(platform: Platform): string {
+  return `Write the post as it will be pasted into ${PLATFORM_LABEL[platform]}…`;
+}
+
+export const TARGET_PLACEHOLDER = 'Pick when this should go live';
+export const SAVE_DRAFT = 'Save Draft';
+export const MARK_READY = 'Mark Ready';
+export const MARK_POSTED = 'Mark Posted';
+export const TARGET_LOCKED_NOTE = 'Locked — the target can no longer move.';

@@ -3,6 +3,7 @@
 import { prisma } from '../db/client';
 import { toDomain, toView } from './today.service';
 import type { PostView } from './today.service';
+// (getPostView for the editor lives in posts.service.ts)
 
 export interface CreateIdeaInput {
   title: string;

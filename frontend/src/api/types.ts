@@ -40,3 +40,18 @@ export interface TodayView {
   state: CardState | 'empty';
   post: PostView | null;
 }
+
+export type ReadyMissing = 'caption' | 'platform' | 'format' | 'target';
+
+export interface MarkReadyResponse {
+  ready: boolean;
+  missing: ReadyMissing | null;
+  post: PostView;
+}
+
+export interface UpdatePostInput {
+  platform?: Platform;
+  format?: Format;
+  caption?: string;
+  targetDatetime?: string | null;
+}

@@ -1,4 +1,4 @@
-import type { PostView, TodayView } from './types';
+import type { MarkReadyResponse, PostView, TodayView, UpdatePostInput } from './types';
 
 export class ApiError extends Error {
   constructor(
@@ -35,4 +35,15 @@ export function createIdea(input: { title: string; coreMessage: string }): Promi
     method: 'POST',
     body: JSON.stringify(input),
   }).then((r) => r.post);
+}
+
+export function updatePost(id: string, input: UpdatePostInput): Promise<PostView> {
+  return request<{ post: PostView }>(`/api/posts/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  }).then((r) => r.post);
+}
+
+export function markReady(id: string): Promise<MarkReadyResponse> {
+  return request<MarkReadyResponse>(`/api/posts/${id}/ready`, { method: 'POST' });
 }

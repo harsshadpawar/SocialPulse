@@ -317,6 +317,30 @@ body {
   margin-bottom: 0;
 }
 
+.stage-done {
+  opacity: 0.72;
+}
+
+.stage-due {
+  border-color: #d9b97e;
+  background: var(--due-bg);
+}
+
+.two-col {
+  display: flex;
+  gap: 12px;
+}
+
+.two-col .field {
+  flex: 1;
+}
+
+.ready-line {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
 /* Mobile width (~375px) stays usable — single column already does the work. */
 @media (max-width: 420px) {
   .command-text {
