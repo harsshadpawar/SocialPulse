@@ -7,6 +7,7 @@ export type Readiness = 'draft' | 'ready';
 export type PostingStatus = 'planned' | 'due' | 'posted' | 'missed';
 export type AdherenceStatus = 'not_applicable' | 'on_time' | 'late' | 'missed';
 export type CardState = 'draft' | 'planned_ready' | 'due' | 'posted' | 'missed';
+export type DraftSubState = 'needs_caption' | 'needs_schedule' | 'ready_to_mark';
 
 export interface Capabilities {
   canEditPrepare: boolean;
@@ -33,6 +34,8 @@ export interface PostView {
   nativePostUrl: string | null;
   graceWindowMinutes: number;
   cardState: CardState;
+  draftSubState: DraftSubState | null;
+  dueNotReady: boolean;
   capabilities: Capabilities;
 }
 

@@ -22,7 +22,7 @@ function headerClock(): string {
   return `${get('weekday')} · ${get('month')} ${get('day')} · ${get('hour')}:${get('minute')} ${get('dayPeriod')}`;
 }
 
-export function IHeader({ back, right }: { back?: string; right?: string }) {
+export function IHeader({ back, right, action }: { back?: string; right?: string; action?: ReactNode }) {
   return (
     <header className="border-b border-ink/10 px-12">
       <div className="flex items-center justify-between py-5">
@@ -36,7 +36,10 @@ export function IHeader({ back, right }: { back?: string; right?: string }) {
             <span className="text-[16px] font-semibold tracking-tight">SocialPulse</span>
           </div>
         )}
-        <span className="text-[14px] tabular-nums text-dim">{right ?? headerClock()}</span>
+        <span className="flex items-center gap-5">
+          {action}
+          <span className="text-[14px] tabular-nums text-dim">{right ?? headerClock()}</span>
+        </span>
       </div>
     </header>
   );

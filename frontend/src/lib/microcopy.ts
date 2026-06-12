@@ -1,24 +1,40 @@
 // The product's voice. Core strings VERBATIM from the handoff README; platform substitution
 // per the hi-fi variants board: "Your {platform} {format-noun} is due now."
 // Server owns state selection; this file owns the words (ADR-3 refinement).
-import type { CardState, Platform, ReadyMissing } from '../api/types';
+import type { CardState, DraftSubState, Platform, ReadyMissing } from '../api/types';
 import type { Tone } from '../components/ui';
 import { PLATFORM_META } from './platform';
 
+/** The slice of PostView the voice functions need (server-derived, ADR-3). */
+export interface VoiceContext {
+  platform: Platform;
+  draftSubState: DraftSubState | null;
+  dueNotReady: boolean;
+}
+
 /* ── Today's Command — one sentence, state-driven ── */
 
-export function commandFor(state: CardState | 'empty', platform?: Platform): string {
+export function commandFor(state: CardState | 'empty', ctx?: VoiceContext): string {
+  const meta = ctx ? PLATFORM_META[ctx.platform] : PLATFORM_META.linkedin;
+  // The key failure mode (D-31): due while still draft.
+  if (ctx?.dueNotReady) return `Your ${meta.label} ${meta.formatNoun} is due — it isn't marked ready yet.`;
   switch (state) {
     case 'empty':
       return "Today is clear. Prep tomorrow's post while you have energy.";
     case 'draft':
-      return 'One post is planned for today — it still needs a caption.';
+      // Sub-state refinement (D-30); first string verbatim from v0.1.
+      switch (ctx?.draftSubState) {
+        case 'needs_schedule':
+          return 'The caption is written — now pick when it goes live.';
+        case 'ready_to_mark':
+          return "Everything's in place — mark it ready.";
+        default:
+          return 'One post is planned for today — it still needs a caption.';
+      }
     case 'planned_ready':
       return 'One post is ready for today.';
-    case 'due': {
-      const meta = platform ? PLATFORM_META[platform] : PLATFORM_META.linkedin;
+    case 'due':
       return `Your ${meta.label} ${meta.formatNoun} is due now.`;
-    }
     case 'posted':
       return "You're on track — nothing left due today.";
     case 'missed':
@@ -26,15 +42,17 @@ export function commandFor(state: CardState | 'empty', platform?: Platform): str
   }
 }
 
-/** Sub-line under the command (hi-fi: due state only). */
-export function commandSub(state: CardState | 'empty', platform?: Platform): string | undefined {
+/** Sub-line under the command (due states only). */
+export function commandSub(state: CardState | 'empty', ctx?: VoiceContext): string | undefined {
+  if (ctx?.dueNotReady) return 'Finish the last step and mark it ready — it can still go out.';
   if (state !== 'due') return undefined;
-  const meta = platform ? PLATFORM_META[platform] : PLATFORM_META.linkedin;
+  const meta = ctx ? PLATFORM_META[ctx.platform] : PLATFORM_META.linkedin;
   return `Open ${meta.label}, publish, then mark it posted here.`;
 }
 
-/** Eyebrow per state (hi-fi HT map). Posted differentiates on-time vs late. */
-export function eyebrowFor(state: CardState | 'empty', adherence?: string): [Tone, string] {
+/** Eyebrow per state (hi-fi HT map + D-31). Posted differentiates on-time vs late. */
+export function eyebrowFor(state: CardState | 'empty', adherence?: string, dueNotReady?: boolean): [Tone, string] {
+  if (dueNotReady) return ['accent', 'Due · not ready'];
   switch (state) {
     case 'empty':
       return ['dim', 'All clear'];
@@ -50,6 +68,9 @@ export function eyebrowFor(state: CardState | 'empty', adherence?: string): [Ton
       return ['missed', 'Missed · still resolvable'];
   }
 }
+
+export const DUE_NOT_READY_CARD =
+  'This post hit its time while still in draft. Finish it, mark it ready, and it can still go live.';
 
 /* ── Card messages (README verbatim, platform-substituted) ── */
 

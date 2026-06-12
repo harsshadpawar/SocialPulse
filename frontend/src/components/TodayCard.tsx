@@ -19,6 +19,7 @@ function When({ iso }: { iso: string | null }) {
 }
 import {
   COPY_CAPTION_DISABLED_HELPER,
+  DUE_NOT_READY_CARD,
   MISSED_MESSAGE,
   PRIMARY_CTA,
   RESOLVE_KEEP_MISSED,
@@ -113,6 +114,11 @@ export function TodayCard({ post }: { post: PostView }) {
         {state === 'due' && (
           <p className="mx-8 mt-5 rounded-lg bg-accent/8 px-5 py-3.5 text-[14.5px] leading-relaxed text-ink/85">
             {dueMessage(post.platform)}
+          </p>
+        )}
+        {post.dueNotReady && (
+          <p className="mx-8 mt-5 rounded-lg bg-accent/8 px-5 py-3.5 text-[14.5px] leading-relaxed text-ink/85">
+            {DUE_NOT_READY_CARD}
           </p>
         )}
         {state === 'missed' && (

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { fetchToday } from '../api/client';
 import { TodayCard } from '../components/TodayCard';
 import { BtnPrimary, Command, Eyebrow, ICard, IHeader } from '../components/ui';
@@ -16,9 +17,19 @@ export function TodayPage() {
     refetchOnWindowFocus: true,
   });
 
+  const ctx = data?.post
+    ? { platform: data.post.platform, draftSubState: data.post.draftSubState, dueNotReady: data.post.dueNotReady }
+    : undefined;
+
   return (
     <div className="flex min-h-screen flex-col bg-paper font-sans text-ink antialiased">
-      <IHeader />
+      <IHeader
+        action={
+          <Link to="/ideas/new" className="text-[14px] font-medium text-dim hover:text-ink">
+            + New idea
+          </Link>
+        }
+      />
       <main className="mx-auto w-full max-w-[660px] flex-1 px-6 pt-14 pb-12">
         {isPending && <p className="text-[15px] text-dim">…</p>}
         {isError && <p className="text-[15px] text-dim">Can't reach the API — is `npm run dev` running?</p>}
@@ -26,16 +37,14 @@ export function TodayPage() {
         {data && (
           <>
             {(() => {
-              const [tone, label] = eyebrowFor(data.state, data.post?.adherenceStatus);
+              const [tone, label] = eyebrowFor(data.state, data.post?.adherenceStatus, data.post?.dueNotReady);
               return (
-                <Eyebrow tone={tone} pulse={data.state === 'due'}>
+                <Eyebrow tone={tone} pulse={data.state === 'due' || data.post?.dueNotReady === true}>
                   {label}
                 </Eyebrow>
               );
             })()}
-            <Command sub={commandSub(data.state, data.post?.platform)}>
-              {commandFor(data.state, data.post?.platform)}
-            </Command>
+            <Command sub={commandSub(data.state, ctx)}>{commandFor(data.state, ctx)}</Command>
 
             {data.post ? (
               <TodayCard post={data.post} />

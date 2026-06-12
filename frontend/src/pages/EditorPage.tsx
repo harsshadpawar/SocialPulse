@@ -166,13 +166,15 @@ export function EditorPage() {
   const isMissed = post.cardState === 'missed';
   const canCopy = caption.trim().length > 0;
 
-  const eyebrow: [Parameters<typeof Eyebrow>[0]['tone'], string] = isDue
-    ? ['accent', 'Due now']
-    : isMissed
-      ? ['missed', 'Missed · still resolvable']
-      : isReady
-        ? ['accent', 'Ready']
-        : ['dim', 'Draft'];
+  const eyebrow: [Parameters<typeof Eyebrow>[0]['tone'], string] = post.dueNotReady
+    ? ['accent', 'Due · not ready']
+    : isDue
+      ? ['accent', 'Due now']
+      : isMissed
+        ? ['missed', 'Missed · still resolvable']
+        : isReady
+          ? ['accent', 'Ready']
+          : ['dim', 'Draft'];
 
   const prepareSummary = `${meta.label} · ${meta.formatLabel} · caption ${post.caption.length} chars`;
   const scheduleSummary = post.targetDatetime ? `${formatTargetLine(post.targetDatetime)} · ${READY_CONFIRM}` : '';
@@ -186,7 +188,7 @@ export function EditorPage() {
   return (
     <Shell right="Post editor">
       <main className="mx-auto w-full max-w-[660px] flex-1 px-6 pt-12 pb-10">
-        <Eyebrow tone={eyebrow[0]} pulse={isDue}>
+        <Eyebrow tone={eyebrow[0]} pulse={isDue || post.dueNotReady}>
           {eyebrow[1]}
         </Eyebrow>
         <h1 className="mt-3 font-serif text-[28px] leading-[1.2]">“{post.ideaTitle}”</h1>
