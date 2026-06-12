@@ -1,0 +1,68 @@
+// SocialPulse v0.1 — schema authority (decision #27, amended: schema.prisma is the source of truth;
+// generated SQL migrations are the audit trail).
+//
+// ADR-2: no stored posting_status / adherence_status — they are DERIVED at read time
+// from target_datetime / actual_datetime / grace / now. Stored columns are facts only.
+// missed_acknowledged_at is a user attestation ("filed this miss"), read only by the selector.
+//
+// Platform→format pairing (decision #12) is enforced in the service layer, not as a DB constraint,
+// to keep schema.prisma the single authority.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Platform {
+  linkedin
+  x
+  youtube
+  instagram
+}
+
+enum Format {
+  text_post
+  short_post
+  short_video
+  reel
+}
+
+enum Readiness {
+  draft
+  ready
+}
+
+model ContentIdea {
+  id          String         @id @default(uuid()) @db.Uuid
+  title       String
+  coreMessage String         @map("core_message")
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  posts       PlatformPost[]
+
+  @@map("content_idea")
+}
+
+model PlatformPost {
+  id                   String      @id @default(uuid()) @db.Uuid
+  contentIdeaId        String      @map("content_idea_id") @db.Uuid
+  idea                 ContentIdea @relation(fields: [contentIdeaId], references: [id])
+  platform             Platform    @default(linkedin)
+  format               Format      @default(text_post)
+  caption              String      @default("")
+  targetDatetime       DateTime?   @map("target_datetime") @db.Timestamptz(6)
+  readiness            Readiness   @default(draft)
+  actualDatetime       DateTime?   @map("actual_datetime") @db.Timestamptz(6)
+  nativePostUrl        String?     @map("native_post_url")
+  graceWindowMinutes   Int         @default(30) @map("grace_window_minutes")
+  missedAcknowledgedAt DateTime?   @map("missed_acknowledged_at") @db.Timestamptz(6)
+  createdAt            DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([targetDatetime])
+  @@index([contentIdeaId])
+  @@map("platform_post")
+}

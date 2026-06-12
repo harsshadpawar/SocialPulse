@@ -1,0 +1,19 @@
+{
+  "name": "socialpulse",
+  "private": true,
+  "version": "0.1.0",
+  "description": "SocialPulse v0.1 — execution accountability cockpit (root scripts only; app code lives in backend/ and frontend/)",
+  "scripts": {
+    "setup": "npm install && npm install --prefix backend && npm install --prefix frontend",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "migrate": "npm --prefix backend run migrate",
+    "seed": "npm --prefix backend run seed",
+    "smoke": "npm --prefix backend run smoke",
+    "dev": "npm run db:up && npm run migrate && concurrently -n api,web -c blue,green \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "test": "npm --prefix backend test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

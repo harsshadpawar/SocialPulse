@@ -1,0 +1,49 @@
+/* "Quiet Instrument" ground rules (handoff README §Design Tokens):
+   warm near-white paper, soft warm black ink, one centered column, generous space.
+   Hi-fi pass happens in M6 — these are the bones. */
+
+:root {
+  --ground: #faf8f4;
+  --ink: #2b2926;
+  --ink-soft: #6f6a62;
+  --line: #e3ded6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 16px;
+}
+
+.wordmark {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.header-date {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.m0-note {
+  color: var(--ink-soft);
+}

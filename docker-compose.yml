@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16-alpine # multi-arch — ARM64-native on Apple Silicon
+    container_name: socialpulse-db
+    environment:
+      POSTGRES_USER: socialpulse
+      POSTGRES_PASSWORD: socialpulse_dev
+      POSTGRES_DB: socialpulse
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - socialpulse_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U socialpulse -d socialpulse"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  socialpulse_pgdata:
