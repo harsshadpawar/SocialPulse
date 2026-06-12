@@ -44,6 +44,14 @@ export interface TodayView {
   post: PostView | null;
   plannedTodayCount: number;
   postedTodayCount: number;
+  postedOnDayCount: number;
+  postedInWeekCount: number;
+  target: TargetView;
+}
+
+export interface TargetView {
+  dailyTarget: number | null;
+  weeklyTarget: number | null;
 }
 
 export type ReadyMissing = 'caption' | 'platform' | 'format' | 'target';

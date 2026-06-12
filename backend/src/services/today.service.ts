@@ -5,7 +5,7 @@ import { deriveCapabilities } from '../domain/capabilities';
 import { deriveCardState, selectTodayPost } from '../domain/selector';
 import { derivePostingStatus } from '../domain/postingStatus';
 import { deriveDraftSubState, deriveDueNotReady } from '../domain/subState';
-import { isSameDay } from '../domain/time';
+import { isSameDay, isSameWeek } from '../domain/time';
 import type { AdherenceStatus, Capabilities, CardState, DomainPost, DraftSubState, Format, Platform, PostingStatus, Readiness } from '../domain/types';
 import { prisma } from '../db/client';
 
@@ -39,6 +39,11 @@ export interface TodayView {
   plannedTodayCount: number;
   /** Of those, how many are already posted. */
   postedTodayCount: number;
+  /** D-32: posted (actual_datetime) on today's Dubai day / in this Dubai ISO week — late counts. */
+  postedOnDayCount: number;
+  postedInWeekCount: number;
+  /** D-33: NULL = no target set for that period. */
+  target: { dailyTarget: number | null; weeklyTarget: number | null };
 }
 
 /** Prisma row (with idea) → plain domain object. The only place this mapping exists. */
@@ -97,17 +102,32 @@ export function toView(post: DomainPost, now: Date): PostView {
   };
 }
 
-/** One DB round-trip per render (reviewer criterion #2). `now` injected once per request (#29). */
+/** Two reads per render (posts + the one-row target). `now` injected once per request (#29). */
 export async function getTodayView(now: Date, tz: string): Promise<TodayView> {
-  const rows = await prisma.platformPost.findMany({ include: { idea: true } });
+  const [rows, targetRow] = await Promise.all([
+    prisma.platformPost.findMany({ include: { idea: true } }),
+    prisma.postingTarget.findUnique({ where: { id: 1 } }),
+  ]);
   const posts = rows.map(toDomain);
 
   const targetedToday = posts.filter((p) => p.targetDatetime !== null && isSameDay(p.targetDatetime, now, tz));
   const plannedTodayCount = targetedToday.length;
   const postedTodayCount = targetedToday.filter((p) => p.actualDatetime !== null).length;
 
+  // D-32: target progress counts by when it was POSTED, not when it was planned. Late counts.
+  const postedOnDayCount = posts.filter((p) => p.actualDatetime !== null && isSameDay(p.actualDatetime, now, tz)).length;
+  const postedInWeekCount = posts.filter((p) => p.actualDatetime !== null && isSameWeek(p.actualDatetime, now, tz)).length;
+
+  const base = {
+    plannedTodayCount,
+    postedTodayCount,
+    postedOnDayCount,
+    postedInWeekCount,
+    target: { dailyTarget: targetRow?.dailyTarget ?? null, weeklyTarget: targetRow?.weeklyTarget ?? null },
+  };
+
   const selected = selectTodayPost(posts, now, tz);
-  if (selected === null) return { state: 'empty', post: null, plannedTodayCount, postedTodayCount };
+  if (selected === null) return { state: 'empty', post: null, ...base };
   const view = toView(selected, now);
-  return { state: view.cardState, post: view, plannedTodayCount, postedTodayCount };
+  return { state: view.cardState, post: view, ...base };
 }

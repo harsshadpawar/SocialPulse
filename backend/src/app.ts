@@ -3,6 +3,7 @@ import type { Express } from 'express';
 import { errorHandler } from './middleware/error';
 import { ideasRouter } from './routes/ideas.routes';
 import { postsRouter } from './routes/posts.routes';
+import { targetsRouter } from './routes/targets.routes';
 import { todayRouter } from './routes/today.routes';
 
 export function createApp(): Express {
@@ -16,6 +17,7 @@ export function createApp(): Express {
   app.use(todayRouter);
   app.use(ideasRouter);
   app.use(postsRouter);
+  app.use(targetsRouter);
 
   app.use(errorHandler);
   return app;

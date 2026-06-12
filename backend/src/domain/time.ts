@@ -31,3 +31,17 @@ export function isSameDay(a: Date, b: Date, tz: string): boolean {
 export function isFutureDay(instant: Date, now: Date, tz: string): boolean {
   return dayKey(instant, tz) > dayKey(now, tz);
 }
+
+/** YYYY-MM-DD of the MONDAY of the instant's calendar week in tz (ISO week, Mon–Sun).
+ *  Noon-UTC anchor sidesteps any boundary weirdness; Dubai has no DST regardless. */
+export function weekStartKey(instant: Date, tz: string): string {
+  const [y, m, d] = dayKey(instant, tz).split('-').map(Number);
+  const anchor = new Date(Date.UTC(y!, m! - 1, d!, 12));
+  const mondayOffset = (anchor.getUTCDay() + 6) % 7; // Mon=0 … Sun=6
+  anchor.setUTCDate(anchor.getUTCDate() - mondayOffset);
+  return anchor.toISOString().slice(0, 10);
+}
+
+export function isSameWeek(a: Date, b: Date, tz: string): boolean {
+  return weekStartKey(a, tz) === weekStartKey(b, tz);
+}

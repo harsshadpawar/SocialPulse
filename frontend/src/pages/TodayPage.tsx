@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { fetchToday } from '../api/client';
+import { TargetsStrip } from '../components/TargetsStrip';
 import { TodayCard } from '../components/TodayCard';
 import { BtnPrimary, Command, Eyebrow, ICard, IHeader } from '../components/ui';
 import { EMPTY_CARD_BODY, EMPTY_CTA, commandFor, commandSub, eyebrowFor } from '../lib/microcopy';
@@ -68,6 +69,7 @@ export function TodayPage() {
                 {data.plannedTodayCount} planned today
               </p>
             )}
+            <TargetsStrip today={data} />
           </>
         )}
       </main>
