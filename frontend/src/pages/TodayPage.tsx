@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { fetchToday } from '../api/client';
 import { TodayCard } from '../components/TodayCard';
 import { formatHeaderDate } from '../lib/format';
@@ -41,9 +42,9 @@ export function TodayPage() {
                 <div className="empty-mark">○</div>
                 <div>{EMPTY_CARD_BODY}</div>
               </div>
-              <button type="button" className="btn btn-primary" disabled title="Coming in M2">
+              <Link to="/ideas/new" className="btn btn-primary">
                 {EMPTY_CTA}
-              </button>
+              </Link>
             </>
           )}
         </>

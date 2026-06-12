@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { PostView } from '../api/types';
 import { formatTargetLine, formatTime } from '../lib/format';
 import {
@@ -98,10 +99,16 @@ export function TodayCard({ post }: Props) {
         </a>
       </div>
 
-      {/* Primary CTA — navigation/mutation wiring arrives with its milestone (M2 editor, M4 posted, M5 missed). */}
-      <button type="button" className="btn btn-primary" disabled title="Coming in the next slice">
-        {PRIMARY_CTA[post.cardState]}
-      </button>
+      {/* Primary CTA — navigation states live (M2); Mark Posted lands in M4, Resolve item in M5. */}
+      {post.cardState === 'due' || post.cardState === 'missed' ? (
+        <button type="button" className="btn btn-primary" disabled title="Coming in the next slice">
+          {PRIMARY_CTA[post.cardState]}
+        </button>
+      ) : (
+        <Link to={`/posts/${post.id}`} className="btn btn-primary">
+          {PRIMARY_CTA[post.cardState]}
+        </Link>
+      )}
     </section>
   );
 }

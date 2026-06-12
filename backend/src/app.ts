@@ -1,6 +1,8 @@
 import express from 'express';
 import type { Express } from 'express';
 import { errorHandler } from './middleware/error';
+import { ideasRouter } from './routes/ideas.routes';
+import { postsRouter } from './routes/posts.routes';
 import { todayRouter } from './routes/today.routes';
 
 export function createApp(): Express {
@@ -12,9 +14,8 @@ export function createApp(): Express {
   });
 
   app.use(todayRouter);
-
-  // M2 adds: POST /api/ideas
-  // M3+ adds: GET/PATCH /api/posts/:id, /ready, /posted, /keep-missed
+  app.use(ideasRouter);
+  app.use(postsRouter);
 
   app.use(errorHandler);
   return app;

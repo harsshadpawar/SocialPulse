@@ -1,11 +1,38 @@
-import type { TodayView } from './types';
+import type { PostView, TodayView } from './types';
 
-async function getJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`API ${res.status} on ${url}`);
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, {
+    headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
+    ...init,
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: { code: string; message: string } } | null;
+    throw new ApiError(res.status, body?.error?.code ?? 'unknown', body?.error?.message ?? `API ${res.status}`);
+  }
   return (await res.json()) as T;
 }
 
 export function fetchToday(): Promise<TodayView> {
-  return getJson<TodayView>('/api/today');
+  return request<TodayView>('/api/today');
+}
+
+export function fetchPost(id: string): Promise<PostView> {
+  return request<{ post: PostView }>(`/api/posts/${id}`).then((r) => r.post);
+}
+
+export function createIdea(input: { title: string; coreMessage: string }): Promise<PostView> {
+  return request<{ post: PostView }>('/api/ideas', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }).then((r) => r.post);
 }

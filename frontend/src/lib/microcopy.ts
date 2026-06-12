@@ -56,3 +56,8 @@ export const PRIMARY_CTA: Record<CardState, string> = {
 };
 
 export const EMPTY_CTA = '+ Create idea';
+
+/* ---- New Idea (capture) ---- */
+export const NEW_IDEA_LABEL = "capture — don't organize";
+export const NEW_IDEA_HEADING = "What's the idea?";
+export const NEW_IDEA_CTA = 'Next → create the LinkedIn post';
