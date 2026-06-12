@@ -9,6 +9,7 @@ import {
   FORMAT_LABEL,
   MARK_POSTED,
   MARK_READY,
+  MISSED_MESSAGE,
   PLATFORM_LABEL,
   READY_CONFIRM,
   READY_GUIDANCE,
@@ -228,6 +229,7 @@ export function EditorPage() {
             <span className="label stage-state">{isDue ? 'due now' : "when it's time"}</span>
           </div>
           {isDue && <div className="card-msg card-msg-due">{dueMessage(post.platform)}</div>}
+          {post.cardState === 'missed' && <div className="card-msg card-msg-missed">{MISSED_MESSAGE}</div>}
           <div className="inline-actions">
             <button
               type="button"

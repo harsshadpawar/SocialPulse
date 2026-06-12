@@ -1,5 +1,7 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { keepAsMissed } from '../api/client';
 import type { PostView } from '../api/types';
 import { MarkPostedSheet } from './MarkPostedSheet';
 import { formatTargetLine, formatTime } from '../lib/format';
@@ -9,6 +11,9 @@ import {
   MISSED_MESSAGE,
   PLATFORM_LABEL,
   PRIMARY_CTA,
+  RESOLVE_KEEP_MISSED,
+  RESOLVE_MARK_POSTED,
+  RESOLVE_MARK_POSTED_NOTE,
   dueMessage,
 } from '../lib/microcopy';
 import { PLATFORM_URL } from '../lib/platform';
@@ -21,6 +26,14 @@ interface Props {
 export function TodayCard({ post }: Props) {
   const [copied, setCopied] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [resolveOpen, setResolveOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  // "Keep as Missed" files the miss — the verdict stays Missed; the card leaves the queue (#17).
+  const keepMissed = useMutation({
+    mutationFn: () => keepAsMissed(post.id),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['today'] }),
+  });
   const platformLabel = PLATFORM_LABEL[post.platform];
   const canCopy = post.caption.length > 0;
 
@@ -112,9 +125,37 @@ export function TodayCard({ post }: Props) {
           {PRIMARY_CTA.due}
         </button>
       ) : post.cardState === 'missed' ? (
-        <button type="button" className="btn btn-primary" disabled title="Resolve item arrives in M5">
-          {PRIMARY_CTA.missed}
-        </button>
+        <>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setResolveOpen((v) => !v)}
+            aria-expanded={resolveOpen}
+          >
+            {PRIMARY_CTA.missed}
+          </button>
+          {resolveOpen && (
+            <div className="resolve-row">
+              <button
+                type="button"
+                className="btn"
+                disabled={!post.capabilities.canMarkPosted}
+                title={post.capabilities.canMarkPosted ? undefined : 'Mark this post Ready first'}
+                onClick={() => setSheetOpen(true)}
+              >
+                {RESOLVE_MARK_POSTED} <span className="dim">{RESOLVE_MARK_POSTED_NOTE}</span>
+              </button>
+              <button
+                type="button"
+                className="btn"
+                disabled={keepMissed.isPending}
+                onClick={() => keepMissed.mutate()}
+              >
+                {RESOLVE_KEEP_MISSED}
+              </button>
+            </div>
+          )}
+        </>
       ) : (
         <Link to={`/posts/${post.id}`} className="btn btn-primary">
           {PRIMARY_CTA[post.cardState]}

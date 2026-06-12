@@ -48,6 +48,10 @@ export function markReady(id: string): Promise<MarkReadyResponse> {
   return request<MarkReadyResponse>(`/api/posts/${id}/ready`, { method: 'POST' });
 }
 
+export function keepAsMissed(id: string): Promise<PostView> {
+  return request<{ post: PostView }>(`/api/posts/${id}/keep-missed`, { method: 'POST' }).then((r) => r.post);
+}
+
 export function markPosted(
   id: string,
   input: { actualDatetime?: string; nativePostUrl?: string },

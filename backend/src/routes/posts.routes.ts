@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { parseOr400 } from '../middleware/validate';
-import { getPostView, markPosted, markReady, updatePost } from '../services/posts.service';
+import { acknowledgeMissed, getPostView, markPosted, markReady, updatePost } from '../services/posts.service';
 
 const IdParamSchema = z.object({ id: z.string().uuid('Not a valid post id.') });
 
@@ -67,4 +67,11 @@ postsRouter.post('/api/posts/:id/posted', (req, res, next) => {
     .catch(next);
 });
 
-// M5 adds: POST /api/posts/:id/keep-missed
+postsRouter.post('/api/posts/:id/keep-missed', (req, res, next) => {
+  const now = new Date();
+  Promise.resolve()
+    .then(() => parseOr400(IdParamSchema, req.params))
+    .then(({ id }) => acknowledgeMissed(id, now))
+    .then(({ post }) => res.json({ post }))
+    .catch(next);
+});

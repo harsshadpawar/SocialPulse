@@ -124,6 +124,29 @@ export async function markPosted(id: string, input: MarkPostedInput, now: Date):
   return { post: toView(toDomain(updated), now), event };
 }
 
+/** "Keep as Missed" — files the miss (decision #17). The verdict stays Missed (derived);
+ *  this attestation only tells the Today selector to stop surfacing it. Idempotent. */
+export async function acknowledgeMissed(id: string, now: Date): Promise<{ post: PostView; event: TransitionEvent | null }> {
+  const post = await loadDomainPost(id);
+  const caps = deriveCapabilities(post, now);
+
+  if (post.missedAcknowledgedAt !== null) {
+    return { post: toView(post, now), event: null }; // already filed
+  }
+  if (!caps.canAcknowledgeMissed) {
+    throw new AppError(409, 'not_missed', 'Only a missed post can be kept as missed.');
+  }
+
+  const updated = await prisma.platformPost.update({
+    where: { id },
+    data: { missedAcknowledgedAt: now },
+    include: { idea: true },
+  });
+
+  const event: TransitionEvent = { type: 'MissedAcknowledged', postId: id, at: now };
+  return { post: toView(toDomain(updated), now), event };
+}
+
 export interface MarkReadyResult {
   ready: boolean;
   missing: ReadyMissing | null;

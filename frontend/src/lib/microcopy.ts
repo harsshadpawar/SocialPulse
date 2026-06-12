@@ -100,3 +100,8 @@ export const RESULT_VOICE: Record<'on_time' | 'late', string> = {
   on_time: "Posted on time. That's the rhythm.",
   late: "Posted — a bit past your target, but it's live. Still counts.",
 };
+
+/* ---- Resolve item (missed — exactly two choices, nothing else in v0.1) ---- */
+export const RESOLVE_MARK_POSTED = 'Mark Posted';
+export const RESOLVE_MARK_POSTED_NOTE = '(becomes Late)';
+export const RESOLVE_KEEP_MISSED = 'Keep as Missed';
