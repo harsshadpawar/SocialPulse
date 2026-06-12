@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { keepAsMissed } from '../api/client';
 import type { PostView } from '../api/types';
-import { formatTime } from '../lib/format';
+import { formatWhen } from '../lib/format';
 import {
   COPY_CAPTION_DISABLED_HELPER,
   MISSED_MESSAGE,
@@ -43,7 +43,7 @@ export function TodayCard({ post }: { post: PostView }) {
   }
 
   const target = post.targetDatetime ? (
-    <span className="tabular-nums">{formatTime(post.targetDatetime)}</span>
+    <span className="tabular-nums">{formatWhen(post.targetDatetime)}</span>
   ) : (
     <span className="text-ink/40">—</span>
   );
@@ -76,7 +76,7 @@ export function TodayCard({ post }: { post: PostView }) {
             cells={[
               ['Platform', <PlatformBadge key="p" name={meta.label} color={meta.color} />],
               ['Target', target],
-              ['Posted', <span key="a" className="tabular-nums">{post.actualDatetime ? formatTime(post.actualDatetime) : '—'}</span>],
+              ['Posted', <span key="a" className="tabular-nums">{post.actualDatetime ? formatWhen(post.actualDatetime) : '—'}</span>],
               [
                 'Result',
                 post.adherenceStatus === 'late' ? (

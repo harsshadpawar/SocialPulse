@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { updatePost } from '../api/client';
 import type { PostView } from '../api/types';
-import { formatTime } from '../lib/format';
+import { formatWhen } from '../lib/format';
 import { BACK_TO_TODAY, RESULT_TITLE, RESULT_VOICE } from '../lib/microcopy';
 import { PLATFORM_META } from '../lib/platform';
 import { BtnPrimary, ICard, PlatformBadge, Readout } from './ui';
@@ -50,8 +50,8 @@ export function ResultCard({ post }: { post: PostView }) {
 
         <Readout
           cells={[
-            ['Target', <span key="t" className="tabular-nums">{post.targetDatetime ? formatTime(post.targetDatetime) : '—'}</span>],
-            ['Posted', <span key="a" className="tabular-nums">{post.actualDatetime ? formatTime(post.actualDatetime) : '—'}</span>],
+            ['Target', <span key="t" className="tabular-nums">{post.targetDatetime ? formatWhen(post.targetDatetime) : '—'}</span>],
+            ['Posted', <span key="a" className="tabular-nums">{post.actualDatetime ? formatWhen(post.actualDatetime) : '—'}</span>],
             ['Result', late ? <span key="r" className="text-late">Late</span> : <span key="r" className="text-success">On-time ✓</span>],
             [
               'Link',

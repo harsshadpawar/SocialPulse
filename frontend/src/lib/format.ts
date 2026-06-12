@@ -31,6 +31,14 @@ export function formatTargetLine(iso: string): string {
   return sameDay ? `Today · ${timeFmt.format(target)}` : `${dateFmt.format(target)} · ${timeFmt.format(target)}`;
 }
 
+/** Readout-cell datetime: time-only when the instant is today (Dubai), date-prefixed otherwise.
+ *  Prevents cross-day pairs like target "Jun 13 · 10:00 AM" vs posted "8:08 PM" reading as same-day. */
+export function formatWhen(iso: string): string {
+  const d = new Date(iso);
+  const sameDay = dayKeyFmt.format(d) === dayKeyFmt.format(new Date());
+  return sameDay ? timeFmt.format(d) : `${dateFmt.format(d)} · ${timeFmt.format(d)}`;
+}
+
 export function formatHeaderDate(now: Date): string {
   return new Intl.DateTimeFormat('en-US', {
     weekday: 'short',
