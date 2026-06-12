@@ -4,6 +4,7 @@ import { deriveAdherence } from '../domain/adherence';
 import { deriveCapabilities } from '../domain/capabilities';
 import { deriveCardState, selectTodayPost } from '../domain/selector';
 import { derivePostingStatus } from '../domain/postingStatus';
+import { isSameDay } from '../domain/time';
 import type { AdherenceStatus, Capabilities, CardState, DomainPost, Format, Platform, PostingStatus, Readiness } from '../domain/types';
 import { prisma } from '../db/client';
 
@@ -29,6 +30,10 @@ export interface PostView {
 export interface TodayView {
   state: CardState | 'empty';
   post: PostView | null;
+  /** Posts targeted on today's Dubai day (any state) — drives "N of N planned today". */
+  plannedTodayCount: number;
+  /** Of those, how many are already posted. */
+  postedTodayCount: number;
 }
 
 /** Prisma row (with idea) → plain domain object. The only place this mapping exists. */
@@ -89,8 +94,13 @@ export function toView(post: DomainPost, now: Date): PostView {
 export async function getTodayView(now: Date, tz: string): Promise<TodayView> {
   const rows = await prisma.platformPost.findMany({ include: { idea: true } });
   const posts = rows.map(toDomain);
+
+  const targetedToday = posts.filter((p) => p.targetDatetime !== null && isSameDay(p.targetDatetime, now, tz));
+  const plannedTodayCount = targetedToday.length;
+  const postedTodayCount = targetedToday.filter((p) => p.actualDatetime !== null).length;
+
   const selected = selectTodayPost(posts, now, tz);
-  if (selected === null) return { state: 'empty', post: null };
+  if (selected === null) return { state: 'empty', post: null, plannedTodayCount, postedTodayCount };
   const view = toView(selected, now);
-  return { state: view.cardState, post: view };
+  return { state: view.cardState, post: view, plannedTodayCount, postedTodayCount };
 }

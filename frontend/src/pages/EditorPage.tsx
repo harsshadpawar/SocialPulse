@@ -1,27 +1,29 @@
+// Post Editor — hi-fi staged mini-workflow (hifi/hifi-editor.jsx): Prepare → Schedule → Publish.
+// When Ready, A & B compress to done-strips with an Edit reopen; C unlocks (gains weight at Due).
+// All status logic is server-derived (ADR-3); this page renders and mutates only.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { fetchPost, markReady, updatePost } from '../api/client';
+import type { Format, Platform, PostView, ReadyMissing } from '../api/types';
 import { MarkPostedSheet } from '../components/MarkPostedSheet';
 import { ResultCard } from '../components/ResultCard';
-import type { Format, Platform, PostView, ReadyMissing } from '../api/types';
+import { BtnPrimary, BtnSecondary, Eyebrow, ICard, IField, IHeader, ISelect, PlatformBadge } from '../components/ui';
+import { formatTargetLine, formatTime } from '../lib/format';
 import {
-  FORMAT_LABEL,
   MARK_POSTED,
   MARK_READY,
   MISSED_MESSAGE,
-  PLATFORM_LABEL,
+  PUBLISH_LOCKED,
   READY_CONFIRM,
   READY_GUIDANCE,
   SAVE_DRAFT,
-  TARGET_LOCKED_NOTE,
-  TARGET_PLACEHOLDER,
+  SCHEDULE_HELPER,
   captionPlaceholder,
   dueMessage,
 } from '../lib/microcopy';
-import { PLATFORM_URL } from '../lib/platform';
+import { PLATFORM_META } from '../lib/platform';
 
-/** v0.1 fixed pairs (decision #12) — selecting a platform selects its format. */
 const PLATFORM_FORMAT: Record<Platform, Format> = {
   linkedin: 'text_post',
   x: 'short_post',
@@ -29,7 +31,11 @@ const PLATFORM_FORMAT: Record<Platform, Format> = {
   instagram: 'reel',
 };
 
-/** ISO ↔ datetime-local (browser tz — Dubai for v0.1, documented assumption). */
+const PLATFORM_OPTIONS = (Object.keys(PLATFORM_META) as Platform[]).map((p) => ({
+  value: p,
+  label: PLATFORM_META[p].label,
+}));
+
 function isoToLocalInput(iso: string | null): string {
   if (!iso) return '';
   const d = new Date(iso);
@@ -41,6 +47,39 @@ function localInputToIso(value: string): string | null {
   return value === '' ? null : new Date(value).toISOString();
 }
 
+/* ── Stage primitives (hi-fi) ── */
+
+function StageMark({ letter, done }: { letter: string; done?: boolean }) {
+  return (
+    <span
+      className={`flex size-7 shrink-0 items-center justify-center rounded-md border text-[12.5px] font-bold ${
+        done ? 'border-accent/30 bg-accent/10 text-accent' : 'border-ink/15 text-ink/70'
+      }`}
+    >
+      {done ? '✓' : letter}
+    </span>
+  );
+}
+
+function StageDone({ letter, title, summary, onEdit }: { letter: string; title: string; summary: string; onEdit?: () => void }) {
+  return (
+    <ICard className="opacity-80">
+      <div className="flex items-center gap-3.5 px-7 py-4">
+        <StageMark letter={letter} done />
+        <span className="text-[15px] font-semibold">{title}</span>
+        <span className="ml-auto truncate text-[13.5px] text-dim">{summary}</span>
+        {onEdit && (
+          <button type="button" className="shrink-0 text-[13.5px] font-medium text-accent hover:underline" onClick={onEdit}>
+            Edit
+          </button>
+        )}
+      </div>
+    </ICard>
+  );
+}
+
+/* ── Page ── */
+
 export function EditorPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
@@ -51,13 +90,13 @@ export function EditorPage() {
     enabled: id !== undefined,
   });
 
-  // Local form state, synced from server snapshots.
   const [platform, setPlatform] = useState<Platform>('linkedin');
   const [caption, setCaption] = useState('');
   const [targetLocal, setTargetLocal] = useState('');
   const [guidance, setGuidance] = useState<ReadyMissing | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [reopened, setReopened] = useState<{ a: boolean; b: boolean }>({ a: false, b: false });
 
   useEffect(() => {
     if (post) {
@@ -83,7 +122,6 @@ export function EditorPage() {
 
   const ready = useMutation({
     mutationFn: async () => {
-      // Flush pending edits first so the gate judges what the user sees.
       await updatePost(id!, {
         platform,
         format: PLATFORM_FORMAT[platform],
@@ -98,185 +136,223 @@ export function EditorPage() {
     },
   });
 
-  if (isPending) return <Shell><p className="quiet">…</p></Shell>;
-  if (isError || !post) return <Shell><p className="quiet">Couldn't load this post.</p></Shell>;
-
-  const isReady = post.readiness === 'ready';
-  const isDue = post.cardState === 'due';
-  const isPosted = post.cardState === 'posted';
-  const canCopy = caption.trim().length > 0;
+  if (isPending) {
+    return (
+      <Shell right="Post editor">
+        <p className="px-6 pt-12 text-[15px] text-dim">…</p>
+      </Shell>
+    );
+  }
+  if (isError || !post) {
+    return (
+      <Shell right="Post editor">
+        <p className="px-6 pt-12 text-[15px] text-dim">Couldn't load this post.</p>
+      </Shell>
+    );
+  }
 
   // The Result is a STATE inside the editor — never a separate page/route.
-  if (isPosted) {
+  if (post.cardState === 'posted') {
     return (
-      <Shell>
+      <Shell right="Post editor">
         <ResultCard post={post} />
       </Shell>
     );
   }
 
+  const meta = PLATFORM_META[post.platform];
+  const isReady = post.readiness === 'ready';
+  const isDue = post.cardState === 'due';
+  const isMissed = post.cardState === 'missed';
+  const canCopy = caption.trim().length > 0;
+
+  const eyebrow: [Parameters<typeof Eyebrow>[0]['tone'], string] = isDue
+    ? ['accent', 'Due now']
+    : isMissed
+      ? ['missed', 'Missed · still resolvable']
+      : isReady
+        ? ['accent', 'Ready']
+        : ['dim', 'Draft'];
+
+  const prepareSummary = `${meta.label} · ${meta.formatLabel} · caption ${post.caption.length} chars`;
+  const scheduleSummary = post.targetDatetime ? `${formatTargetLine(post.targetDatetime)} · ${READY_CONFIRM}` : '';
+
+  const showPrepareOpen = !isReady || reopened.a;
+  const showScheduleOpen = !isReady || reopened.b;
+
+  const flushPrepare = () =>
+    save.mutate({ platform, format: PLATFORM_FORMAT[platform], caption });
+
   return (
-    <Shell>
-      <div className="idea-context">
-        <span className="label">From idea</span>
-        <div>
-          “{post.ideaTitle}” · {PLATFORM_LABEL[post.platform]} · {FORMAT_LABEL[post.format] ?? post.format}
-        </div>
-      </div>
+    <Shell right="Post editor">
+      <main className="mx-auto w-full max-w-[660px] flex-1 px-6 pt-12 pb-10">
+        <Eyebrow tone={eyebrow[0]} pulse={isDue}>
+          {eyebrow[1]}
+        </Eyebrow>
+        <h1 className="mt-3 font-serif text-[28px] leading-[1.2]">“{post.ideaTitle}”</h1>
+        <p className="mt-2 flex items-center gap-3 text-[14px] text-dim">
+          <PlatformBadge name={meta.label} color={meta.color} /> <span>{meta.formatLabel}</span>
+          {post.targetDatetime && <span className="tabular-nums">· target {formatTargetLine(post.targetDatetime)}</span>}
+        </p>
 
-      {/* A · Prepare */}
-      <section className={`stage ${isReady ? 'stage-done' : ''}`}>
-        <div className="stage-head">
-          <span className="stage-n">A</span>
-          <span className="stage-title">Prepare</span>
-          <span className="label stage-state">{isReady ? 'done ✓' : 'in progress'}</span>
-        </div>
-        <div className="two-col">
-          <label className="field">
-            <span className="label">Platform</span>
-            <select
-              className="input"
-              value={platform}
-              disabled={!post.capabilities.canEditPrepare}
-              onChange={(e) => setPlatform(e.target.value as Platform)}
-            >
-              {(Object.keys(PLATFORM_LABEL) as Platform[]).map((p) => (
-                <option key={p} value={p}>{PLATFORM_LABEL[p]}</option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span className="label">Format</span>
-            <select className="input" value={PLATFORM_FORMAT[platform]} disabled>
-              <option value={PLATFORM_FORMAT[platform]}>{FORMAT_LABEL[PLATFORM_FORMAT[platform]]}</option>
-            </select>
-          </label>
-        </div>
-        <label className="field">
-          <span className="label">Caption</span>
-          <textarea
-            className="input input-tall"
-            value={caption}
-            disabled={!post.capabilities.canEditPrepare}
-            placeholder={captionPlaceholder(platform)}
-            onChange={(e) => setCaption(e.target.value)}
-          />
-        </label>
-        {!isReady && post.capabilities.canEditPrepare && (
-          <button
-            type="button"
-            className="btn"
-            disabled={save.isPending}
-            onClick={() => save.mutate({ platform, format: PLATFORM_FORMAT[platform], caption })}
-          >
-            {savedFlash ? 'Saved ✓' : SAVE_DRAFT}
-          </button>
-        )}
-        {isReady && post.capabilities.canEditPrepare && (
-          <button
-            type="button"
-            className="btn"
-            disabled={save.isPending}
-            onClick={() => save.mutate({ platform, format: PLATFORM_FORMAT[platform], caption })}
-          >
-            {savedFlash ? 'Saved ✓' : 'Save changes'}
-          </button>
-        )}
-      </section>
+        <div className="mt-8 flex flex-col gap-4">
+          {/* A · Prepare */}
+          {showPrepareOpen ? (
+            <ICard>
+              <div className="flex items-center gap-3.5 border-b border-ink/8 px-7 py-4">
+                <StageMark letter="A" done={isReady} />
+                <span className="text-[15px] font-semibold">Prepare</span>
+                <span className="ml-auto text-[12px] font-semibold uppercase tracking-[0.14em] text-dim">
+                  {isReady ? 'Editable' : 'In progress'}
+                </span>
+              </div>
+              <div className="flex flex-col gap-5 px-7 py-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <ISelect
+                    label="Platform"
+                    value={platform}
+                    options={PLATFORM_OPTIONS}
+                    disabled={!post.capabilities.canEditPrepare}
+                    onChange={(p) => setPlatform(p)}
+                  />
+                  <ISelect
+                    label="Format"
+                    value={PLATFORM_FORMAT[platform]}
+                    options={[{ value: PLATFORM_FORMAT[platform], label: PLATFORM_META[platform].formatLabel }]}
+                    disabled
+                  />
+                </div>
+                <IField
+                  label="Caption"
+                  textarea
+                  value={caption}
+                  placeholder={captionPlaceholder(platform)}
+                  disabled={!post.capabilities.canEditPrepare}
+                  onChange={setCaption}
+                  right={<span className="text-[12px] text-dim">{caption.length} characters</span>}
+                />
+                <div className="flex justify-end">
+                  <BtnSecondary className="px-6" disabled={save.isPending || !post.capabilities.canEditPrepare} onClick={flushPrepare}>
+                    {savedFlash ? 'Saved ✓' : isReady ? 'Save changes' : SAVE_DRAFT}
+                  </BtnSecondary>
+                </div>
+              </div>
+            </ICard>
+          ) : (
+            <StageDone letter="A" title="Prepare" summary={prepareSummary} onEdit={() => setReopened((r) => ({ ...r, a: true }))} />
+          )}
 
-      {/* B · Schedule */}
-      <section className={`stage ${isReady ? 'stage-done' : ''}`}>
-        <div className="stage-head">
-          <span className="stage-n">B</span>
-          <span className="stage-title">Schedule</span>
-          <span className="label stage-state">{isReady ? 'done ✓' : ''}</span>
-        </div>
-        <label className="field">
-          <span className="label">Target date &amp; time</span>
-          <input
-            type="datetime-local"
-            className="input"
-            value={targetLocal}
-            disabled={!post.capabilities.canEditTarget}
-            placeholder={TARGET_PLACEHOLDER}
-            onChange={(e) => setTargetLocal(e.target.value)}
-            onBlur={() => {
-              if (post.capabilities.canEditTarget) {
-                save.mutate({ targetDatetime: localInputToIso(targetLocal) });
-              }
-            }}
-          />
-        </label>
-        {!post.capabilities.canEditTarget && !isPosted && <div className="help">{TARGET_LOCKED_NOTE}</div>}
-        {isReady ? (
-          <div className="ready-line">✓ {READY_CONFIRM}</div>
-        ) : (
-          <div className="inline-col">
-            <button type="button" className="btn" disabled={ready.isPending} onClick={() => ready.mutate()}>
-              {MARK_READY}
-            </button>
-            {guidance && <div className="help">{READY_GUIDANCE[guidance]}</div>}
-          </div>
-        )}
-      </section>
+          {/* B · Schedule */}
+          {showScheduleOpen ? (
+            <ICard>
+              <div className="flex items-center gap-3.5 border-b border-ink/8 px-7 py-4">
+                <StageMark letter="B" done={isReady} />
+                <span className="text-[15px] font-semibold">Schedule</span>
+              </div>
+              <div className="flex flex-col gap-5 px-7 py-6">
+                <IField
+                  label="Target date & time"
+                  type="datetime-local"
+                  value={targetLocal}
+                  disabled={!post.capabilities.canEditTarget}
+                  helper={post.capabilities.canEditTarget ? SCHEDULE_HELPER : 'Locked — the target can no longer move.'}
+                  onChange={setTargetLocal}
+                  onBlur={() => {
+                    if (post.capabilities.canEditTarget) save.mutate({ targetDatetime: localInputToIso(targetLocal) });
+                  }}
+                />
+                {isReady ? (
+                  <p className="text-[14px] font-medium text-accent">✓ {READY_CONFIRM}</p>
+                ) : (
+                  <div className="flex items-center gap-4">
+                    <BtnSecondary className="px-6" disabled={ready.isPending} onClick={() => ready.mutate()}>
+                      {MARK_READY}
+                    </BtnSecondary>
+                    {guidance && <p className="text-[13.5px] text-dim">{READY_GUIDANCE[guidance]}</p>}
+                  </div>
+                )}
+              </div>
+            </ICard>
+          ) : (
+            <StageDone letter="B" title="Schedule" summary={scheduleSummary} onEdit={() => setReopened((r) => ({ ...r, b: true }))} />
+          )}
 
-      {/* C · Publish */}
-      {isReady ? (
-        <section className={`stage ${isDue ? 'stage-due' : ''}`}>
-          <div className="stage-head">
-            <span className="stage-n">C</span>
-            <span className="stage-title">Publish</span>
-            <span className="label stage-state">{isDue ? 'due now' : "when it's time"}</span>
-          </div>
-          {isDue && <div className="card-msg card-msg-due">{dueMessage(post.platform)}</div>}
-          {post.cardState === 'missed' && <div className="card-msg card-msg-missed">{MISSED_MESSAGE}</div>}
-          <div className="inline-actions">
-            <button
-              type="button"
-              className="btn"
-              disabled={!canCopy}
-              onClick={() => void navigator.clipboard.writeText(caption)}
-            >
-              ⧉ Copy Caption
-            </button>
-            <a className="btn btn-link" href={PLATFORM_URL[post.platform]} target="_blank" rel="noreferrer">
-              ↗ Open {PLATFORM_LABEL[post.platform]}
-            </a>
-          </div>
-          <button
-            type="button"
-            className={isDue ? 'btn btn-primary' : 'btn'}
-            disabled={!post.capabilities.canMarkPosted}
-            onClick={() => setSheetOpen(true)}
-            style={{ width: '100%' }}
-          >
-            {MARK_POSTED}
-          </button>
-        </section>
-      ) : (
-        <section className="stage stage-locked">
-          <div className="stage-head">
-            <span className="stage-n">C</span>
-            <span className="stage-title">Publish</span>
-            <span className="label stage-state">appears when Ready</span>
-          </div>
-          <p className="quiet">Copy Caption · Open {PLATFORM_LABEL[post.platform]} · Mark Posted</p>
-        </section>
-      )}
+          {/* C · Publish */}
+          {isReady ? (
+            <ICard className={isDue ? 'outline-2 outline-accent/35' : ''}>
+              <div className="flex items-center gap-3.5 border-b border-ink/8 px-7 py-4">
+                <StageMark letter="C" />
+                <span className="text-[15px] font-semibold">Publish</span>
+                {isDue ? (
+                  <span className="ml-auto flex items-center gap-2">
+                    <span className="relative flex size-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60 motion-reduce:hidden"></span>
+                      <span className="relative inline-flex size-2 rounded-full bg-accent"></span>
+                    </span>
+                    <span className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">Due now</span>
+                  </span>
+                ) : isMissed ? (
+                  <span className="ml-auto text-[12px] font-semibold uppercase tracking-[0.14em] text-missed">Missed</span>
+                ) : (
+                  <span className="ml-auto text-[12px] font-semibold uppercase tracking-[0.14em] text-dim">When it's time</span>
+                )}
+              </div>
+              <div className="flex flex-col gap-4 px-7 py-6">
+                {isDue && (
+                  <p className="rounded-lg bg-accent/8 px-5 py-3.5 text-[14.5px] leading-relaxed text-ink/85">
+                    {dueMessage(post.platform)}
+                  </p>
+                )}
+                {isMissed && (
+                  <p className="rounded-lg bg-missed/8 px-5 py-3.5 text-[14.5px] leading-relaxed text-ink/75">{MISSED_MESSAGE}</p>
+                )}
+                <div className="flex gap-3">
+                  <BtnSecondary
+                    className="flex-1"
+                    disabled={!canCopy}
+                    onClick={() => void navigator.clipboard.writeText(caption)}
+                  >
+                    Copy Caption
+                  </BtnSecondary>
+                  <BtnSecondary className="flex-1" href={meta.url}>
+                    {meta.openLabel}
+                  </BtnSecondary>
+                </div>
+                {isDue ? (
+                  <BtnPrimary className="w-full py-3" disabled={!post.capabilities.canMarkPosted} onClick={() => setSheetOpen(true)}>
+                    {MARK_POSTED}
+                  </BtnPrimary>
+                ) : (
+                  <BtnSecondary className="w-full" disabled={!post.capabilities.canMarkPosted} onClick={() => setSheetOpen(true)}>
+                    {MARK_POSTED}
+                  </BtnSecondary>
+                )}
+              </div>
+            </ICard>
+          ) : (
+            <div className="rounded-xl border border-dashed border-ink/15 px-7 py-4">
+              <div className="flex items-center gap-3.5">
+                <span className="flex size-7 items-center justify-center rounded-md border border-ink/12 text-[12.5px] font-bold text-ink/35">
+                  C
+                </span>
+                <span className="text-[15px] font-semibold text-ink/40">Publish</span>
+                <span className="ml-auto text-[13px] text-ink/35">{PUBLISH_LOCKED}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
 
       {sheetOpen && <MarkPostedSheet post={post} onClose={() => setSheetOpen(false)} />}
     </Shell>
   );
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ right, children }: { right: string; children: React.ReactNode }) {
   return (
-    <main className="shell">
-      <header className="header">
-        <Link to="/" className="back-link">← Today</Link>
-        <span className="header-date">Post Editor</span>
-      </header>
+    <div className="flex min-h-screen flex-col bg-paper font-sans text-ink antialiased">
+      <IHeader back="Today" right={right} />
       {children}
-    </main>
+    </div>
   );
 }

@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { createIdea } from '../api/client';
-import { NEW_IDEA_CTA, NEW_IDEA_HEADING, NEW_IDEA_LABEL } from '../lib/microcopy';
+import { BtnPrimary, Command, Eyebrow, ICard, IField, IHeader } from '../components/ui';
+import { NEW_IDEA_CTA, NEW_IDEA_EYEBROW, NEW_IDEA_HEADING, NEW_IDEA_SUB } from '../lib/microcopy';
 
 /** Capture, don't organize. Two fields, one button, <30 seconds. */
 export function NewIdeaPage() {
@@ -22,49 +23,35 @@ export function NewIdeaPage() {
   const incomplete = title.trim() === '' || coreMessage.trim() === '';
 
   return (
-    <main className="shell">
-      <header className="header">
-        <Link to="/" className="back-link">← Today</Link>
-        <span className="header-date">New Idea</span>
-      </header>
+    <div className="flex min-h-screen flex-col bg-paper font-sans text-ink antialiased">
+      <IHeader back="Today" right="New idea" />
+      <main className="mx-auto w-full max-w-[620px] flex-1 px-6 pt-14 pb-12">
+        <Eyebrow tone="dim">{NEW_IDEA_EYEBROW}</Eyebrow>
+        <Command sub={NEW_IDEA_SUB}>{NEW_IDEA_HEADING}</Command>
 
-      <div className="command">
-        <span className="label">{NEW_IDEA_LABEL}</span>
-        <h1 className="command-text">{NEW_IDEA_HEADING}</h1>
-      </div>
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!incomplete) create.mutate({ title: title.trim(), coreMessage: coreMessage.trim() });
-        }}
-      >
-        <label className="field">
-          <span className="label">Title</span>
-          <input
-            className="input"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="“AI credit scoring must be explainable”"
-            autoFocus
-          />
-        </label>
-
-        <label className="field">
-          <span className="label">Core message</span>
-          <textarea
-            className="input input-tall"
-            value={coreMessage}
-            onChange={(e) => setCoreMessage(e.target.value)}
-            placeholder="Banks adopting AI scoring owe customers a reason, not a verdict."
-          />
-        </label>
-
-        <button type="submit" className="btn btn-primary" disabled={incomplete || create.isPending}>
-          {create.isPending ? '…' : NEW_IDEA_CTA}
-        </button>
-        {create.isError && <p className="help">{create.error.message}</p>}
-      </form>
-    </main>
+        <ICard className="mt-9">
+          <form
+            className="flex flex-col gap-6 px-8 py-7"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!incomplete) create.mutate({ title: title.trim(), coreMessage: coreMessage.trim() });
+            }}
+          >
+            <IField label="Title" value={title} onChange={setTitle} placeholder="“AI credit scoring must be explainable”" />
+            <IField
+              label="Core message"
+              textarea
+              value={coreMessage}
+              onChange={setCoreMessage}
+              placeholder="Banks adopting AI scoring owe customers a reason, not a verdict."
+            />
+            <BtnPrimary className="w-full py-3" type="submit" disabled={incomplete || create.isPending}>
+              {create.isPending ? '…' : NEW_IDEA_CTA}
+            </BtnPrimary>
+            {create.isError && <p className="text-[13.5px] text-dim">{create.error.message}</p>}
+          </form>
+        </ICard>
+      </main>
+    </div>
   );
 }

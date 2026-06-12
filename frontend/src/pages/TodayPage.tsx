@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 import { fetchToday } from '../api/client';
 import { TodayCard } from '../components/TodayCard';
-import { formatHeaderDate } from '../lib/format';
-import { EMPTY_CARD_BODY, EMPTY_CTA, commandFor } from '../lib/microcopy';
+import { BtnPrimary, Command, Eyebrow, ICard, IHeader } from '../components/ui';
+import { EMPTY_CARD_BODY, EMPTY_CTA, commandFor, commandSub, eyebrowFor } from '../lib/microcopy';
 
 /**
  * The command surface. Refetch on window focus + 30s interval IS the v0.1 reminder
@@ -18,37 +17,51 @@ export function TodayPage() {
   });
 
   return (
-    <main className="shell">
-      <header className="header">
-        <span className="wordmark">● SocialPulse</span>
-        <span className="header-date">{formatHeaderDate(new Date())}</span>
-      </header>
+    <div className="flex min-h-screen flex-col bg-paper font-sans text-ink antialiased">
+      <IHeader />
+      <main className="mx-auto w-full max-w-[660px] flex-1 px-6 pt-14 pb-12">
+        {isPending && <p className="text-[15px] text-dim">…</p>}
+        {isError && <p className="text-[15px] text-dim">Can't reach the API — is `npm run dev` running?</p>}
 
-      {isPending && <p className="quiet">…</p>}
-      {isError && <p className="quiet">Can't reach the API — is `npm run dev` running?</p>}
+        {data && (
+          <>
+            {(() => {
+              const [tone, label] = eyebrowFor(data.state, data.post?.adherenceStatus);
+              return (
+                <Eyebrow tone={tone} pulse={data.state === 'due'}>
+                  {label}
+                </Eyebrow>
+              );
+            })()}
+            <Command sub={commandSub(data.state, data.post?.platform)}>
+              {commandFor(data.state, data.post?.platform)}
+            </Command>
 
-      {data && (
-        <>
-          <div className="command">
-            <span className="label">Today's Command</span>
-            <h1 className="command-text">{commandFor(data.state, data.post?.platform)}</h1>
-          </div>
+            {data.post ? (
+              <TodayCard post={data.post} />
+            ) : (
+              <ICard className="mt-9">
+                <div className="flex flex-col items-center gap-4 px-8 py-14 text-center">
+                  <span className="flex size-11 items-center justify-center rounded-full border border-ink/12 text-[18px] text-dim">
+                    ＋
+                  </span>
+                  <p className="max-w-[40ch] text-[15px] leading-relaxed text-dim">{EMPTY_CARD_BODY}</p>
+                  <BtnPrimary className="mt-1 px-8" to="/ideas/new">
+                    {EMPTY_CTA}
+                  </BtnPrimary>
+                </div>
+              </ICard>
+            )}
 
-          {data.post ? (
-            <TodayCard post={data.post} />
-          ) : (
-            <>
-              <div className="empty-card">
-                <div className="empty-mark">○</div>
-                <div>{EMPTY_CARD_BODY}</div>
-              </div>
-              <Link to="/ideas/new" className="btn btn-primary">
-                {EMPTY_CTA}
-              </Link>
-            </>
-          )}
-        </>
-      )}
-    </main>
+            {data.plannedTodayCount > 0 && data.post && (
+              <p className="mt-5 text-center text-[13px] text-dim">
+                {Math.min(data.postedTodayCount + (data.post.postingStatus === 'posted' ? 0 : 1), data.plannedTodayCount)} of{' '}
+                {data.plannedTodayCount} planned today
+              </p>
+            )}
+          </>
+        )}
+      </main>
+    </div>
   );
 }

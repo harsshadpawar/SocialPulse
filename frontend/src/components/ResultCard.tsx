@@ -1,25 +1,27 @@
-// The reward moment — the editor itself transforms; no navigation, no separate page.
-// On-time and Late share the layout and the ✓; only the chip and voice line differ. Late is never red.
+// The reward moment — hi-fi Result, a state inside the editor. The one motion moment
+// (settle + check pop, reduced-motion gated). Late shares the layout; never red.
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { updatePost } from '../api/client';
 import type { PostView } from '../api/types';
 import { formatTime } from '../lib/format';
-import { BACK_TO_TODAY, FORMAT_LABEL, PLATFORM_LABEL, RESULT_TITLE, RESULT_VOICE } from '../lib/microcopy';
+import { BACK_TO_TODAY, RESULT_TITLE, RESULT_VOICE } from '../lib/microcopy';
+import { PLATFORM_META } from '../lib/platform';
+import { BtnPrimary, ICard, PlatformBadge, Readout } from './ui';
 
-interface Props {
-  post: PostView;
-}
+const FIELD =
+  'w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-[14px] text-ink focus:outline-2 focus:outline-accent/60';
 
-export function ResultCard({ post }: Props) {
+export function ResultCard({ post }: { post: PostView }) {
   const queryClient = useQueryClient();
   const [editingTime, setEditingTime] = useState(false);
   const [timeLocal, setTimeLocal] = useState('');
   const [addingLink, setAddingLink] = useState(false);
   const [url, setUrl] = useState('');
 
-  const verdict: 'on_time' | 'late' = post.adherenceStatus === 'late' ? 'late' : 'on_time';
+  const late = post.adherenceStatus === 'late';
+  const verdict: 'on_time' | 'late' = late ? 'late' : 'on_time';
+  const meta = PLATFORM_META[post.platform];
 
   const patch = useMutation({
     mutationFn: (input: { actualDatetime?: string; nativePostUrl?: string }) => updatePost(post.id, input),
@@ -32,95 +34,97 @@ export function ResultCard({ post }: Props) {
   });
 
   return (
-    <section className="result settle">
-      <div className="result-mark">✓</div>
-      <h1 className="result-title">{RESULT_TITLE[verdict]}</h1>
-      <div className="card-meta result-chips">
-        <span className="chip">in {PLATFORM_LABEL[post.platform]}</span>
-        <span className="chip">{FORMAT_LABEL[post.format] ?? post.format}</span>
-      </div>
+    <main className="mx-auto w-full max-w-[560px] flex-1 px-6 pt-16 pb-12">
+      <ICard className="anim-settle">
+        <div className="flex flex-col items-center px-10 py-10 text-center">
+          <span
+            className={`anim-check flex size-14 items-center justify-center rounded-full text-[24px] text-white ${late ? 'bg-late' : 'bg-success'}`}
+          >
+            ✓
+          </span>
+          <h1 className="mt-5 font-serif text-[30px] leading-tight">{RESULT_TITLE[verdict]}</h1>
+          <p className="mt-2 flex items-center gap-3 text-[14px] text-dim">
+            <PlatformBadge name={meta.label} color={meta.color} /> <span>{meta.formatLabel}</span>
+          </p>
+        </div>
 
-      <div className="result-rows">
-        <div className="result-row">
-          <span className="label">Target</span>
-          <span>{post.targetDatetime ? formatTime(post.targetDatetime) : '—'}</span>
-        </div>
-        <div className="result-row">
-          <span className="label">Posted</span>
-          <span>
-            {post.actualDatetime ? formatTime(post.actualDatetime) : '—'}{' '}
-            <button type="button" className="link-btn" onClick={() => setEditingTime((v) => !v)}>
-              edit
+        <Readout
+          cells={[
+            ['Target', <span key="t" className="tabular-nums">{post.targetDatetime ? formatTime(post.targetDatetime) : '—'}</span>],
+            ['Posted', <span key="a" className="tabular-nums">{post.actualDatetime ? formatTime(post.actualDatetime) : '—'}</span>],
+            ['Result', late ? <span key="r" className="text-late">Late</span> : <span key="r" className="text-success">On-time ✓</span>],
+            [
+              'Link',
+              post.nativePostUrl ? (
+                <a key="l" href={post.nativePostUrl} target="_blank" rel="noreferrer" className="text-accent">
+                  {post.nativePostUrl.replace(/^https?:\/\/(www\.)?/, '').slice(0, 18)}… ↗
+                </a>
+              ) : (
+                <span key="l" className="text-ink/40">—</span>
+              ),
+            ],
+          ]}
+        />
+
+        {/* Quiet corrections row — actual time stays editable (#21); link can be added later. */}
+        <div className="flex items-center justify-center gap-5 border-b border-ink/8 px-10 py-2.5">
+          <button
+            type="button"
+            className="text-[12.5px] font-medium text-dim hover:text-ink"
+            onClick={() => {
+              setEditingTime((v) => !v);
+              setAddingLink(false);
+            }}
+          >
+            Edit posted time
+          </button>
+          {!post.nativePostUrl && (
+            <button
+              type="button"
+              className="text-[12.5px] font-medium text-dim hover:text-ink"
+              onClick={() => {
+                setAddingLink((v) => !v);
+                setEditingTime(false);
+              }}
+            >
+              + Add link
             </button>
-          </span>
+          )}
         </div>
-        <div className="result-row">
-          <span className="label">Result</span>
-          <span className={`chip ${verdict === 'on_time' ? 'chip-fill' : 'chip-late'}`}>
-            {verdict === 'on_time' ? 'On-time' : 'Late'}
-          </span>
-        </div>
-        {post.nativePostUrl ? (
-          <div className="result-row">
-            <span className="label">Link</span>
-            <a href={post.nativePostUrl} target="_blank" rel="noreferrer" className="result-link">
-              {post.nativePostUrl.replace(/^https?:\/\/(www\.)?/, '').slice(0, 34)}… ↗
-            </a>
-          </div>
-        ) : (
-          <div className="result-row">
-            <span className="label">Link</span>
-            <button type="button" className="link-btn" onClick={() => setAddingLink((v) => !v)}>
-              + add link
+
+        {(editingTime || addingLink) && (
+          <div className="flex gap-2.5 border-b border-ink/8 px-10 py-4">
+            {editingTime ? (
+              <input type="datetime-local" className={FIELD} value={timeLocal} onChange={(e) => setTimeLocal(e.target.value)} />
+            ) : (
+              <input
+                className={FIELD}
+                value={url}
+                placeholder="https://www.linkedin.com/posts/…"
+                onChange={(e) => setUrl(e.target.value)}
+              />
+            )}
+            <button
+              type="button"
+              className="shrink-0 rounded-lg bg-accent px-5 text-[14px] font-semibold text-white hover:brightness-105 disabled:opacity-40"
+              disabled={patch.isPending || (editingTime ? timeLocal === '' : url.trim() === '')}
+              onClick={() =>
+                patch.mutate(editingTime ? { actualDatetime: new Date(timeLocal).toISOString() } : { nativePostUrl: url.trim() })
+              }
+            >
+              Save
             </button>
           </div>
         )}
-      </div>
+        {patch.isError && <p className="px-10 pt-3 text-[13px] text-dim">{patch.error.message}</p>}
 
-      {editingTime && (
-        <div className="result-edit">
-          <input
-            type="datetime-local"
-            className="input"
-            value={timeLocal}
-            onChange={(e) => setTimeLocal(e.target.value)}
-          />
-          <button
-            type="button"
-            className="btn"
-            disabled={timeLocal === '' || patch.isPending}
-            onClick={() => patch.mutate({ actualDatetime: new Date(timeLocal).toISOString() })}
-          >
-            Save
-          </button>
+        <div className="px-10 py-7 text-center">
+          <p className="font-serif text-[17px] italic text-ink/75">“{RESULT_VOICE[verdict]}”</p>
+          <BtnPrimary className="mt-6 w-full py-3" to="/">
+            {BACK_TO_TODAY}
+          </BtnPrimary>
         </div>
-      )}
-
-      {addingLink && (
-        <div className="result-edit">
-          <input
-            className="input"
-            value={url}
-            placeholder="https://www.linkedin.com/posts/…"
-            onChange={(e) => setUrl(e.target.value)}
-          />
-          <button
-            type="button"
-            className="btn"
-            disabled={url.trim() === '' || patch.isPending}
-            onClick={() => patch.mutate({ nativePostUrl: url.trim() })}
-          >
-            Save
-          </button>
-        </div>
-      )}
-      {patch.isError && <p className="help">{patch.error.message}</p>}
-
-      <p className="result-voice">“{RESULT_VOICE[verdict]}”</p>
-
-      <Link to="/" className="btn btn-primary">
-        {BACK_TO_TODAY}
-      </Link>
-    </section>
+      </ICard>
+    </main>
   );
 }

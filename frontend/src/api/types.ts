@@ -39,6 +39,8 @@ export interface PostView {
 export interface TodayView {
   state: CardState | 'empty';
   post: PostView | null;
+  plannedTodayCount: number;
+  postedTodayCount: number;
 }
 
 export type ReadyMissing = 'caption' | 'platform' | 'format' | 'target';

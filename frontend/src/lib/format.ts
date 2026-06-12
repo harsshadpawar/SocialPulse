@@ -24,11 +24,11 @@ export function formatTime(iso: string): string {
   return timeFmt.format(new Date(iso));
 }
 
-/** "today · 8:30 PM" or "Jun 13 · 9:00 AM" — relative to the viewer's now, in Dubai days. */
+/** "Today · 8:30 PM" or "Jun 13 · 9:00 AM" — relative to the viewer's now, in Dubai days. */
 export function formatTargetLine(iso: string): string {
   const target = new Date(iso);
   const sameDay = dayKeyFmt.format(target) === dayKeyFmt.format(new Date());
-  return sameDay ? `today · ${timeFmt.format(target)}` : `${dateFmt.format(target)} · ${timeFmt.format(target)}`;
+  return sameDay ? `Today · ${timeFmt.format(target)}` : `${dateFmt.format(target)} · ${timeFmt.format(target)}`;
 }
 
 export function formatHeaderDate(now: Date): string {
