@@ -39,6 +39,12 @@ export function formatWhen(iso: string): string {
   return sameDay ? timeFmt.format(d) : `${dateFmt.format(d)} · ${timeFmt.format(d)}`;
 }
 
+/** Two-line readout rendering: date always shown, broken from the time ("Jun 13" / "10:00 AM"). */
+export function formatDateParts(iso: string): { date: string; time: string } {
+  const d = new Date(iso);
+  return { date: dateFmt.format(d), time: timeFmt.format(d) };
+}
+
 export function formatHeaderDate(now: Date): string {
   return new Intl.DateTimeFormat('en-US', {
     weekday: 'short',

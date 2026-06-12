@@ -4,7 +4,19 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { updatePost } from '../api/client';
 import type { PostView } from '../api/types';
-import { formatWhen } from '../lib/format';
+import { formatDateParts } from '../lib/format';
+
+/** Date over time, always both — "Jun 13" / "10:00 AM". */
+function When({ iso }: { iso: string | null }) {
+  if (!iso) return <span className="text-ink/40">—</span>;
+  const { date, time } = formatDateParts(iso);
+  return (
+    <span className="block">
+      <span className="block text-[12px] text-dim">{date}</span>
+      <span className="tabular-nums">{time}</span>
+    </span>
+  );
+}
 import { BACK_TO_TODAY, RESULT_TITLE, RESULT_VOICE } from '../lib/microcopy';
 import { PLATFORM_META } from '../lib/platform';
 import { BtnPrimary, ICard, PlatformBadge, Readout } from './ui';
@@ -50,8 +62,8 @@ export function ResultCard({ post }: { post: PostView }) {
 
         <Readout
           cells={[
-            ['Target', <span key="t" className="tabular-nums">{post.targetDatetime ? formatWhen(post.targetDatetime) : '—'}</span>],
-            ['Posted', <span key="a" className="tabular-nums">{post.actualDatetime ? formatWhen(post.actualDatetime) : '—'}</span>],
+            ['Target', <When key="t" iso={post.targetDatetime} />],
+            ['Posted', <When key="a" iso={post.actualDatetime} />],
             ['Result', late ? <span key="r" className="text-late">Late</span> : <span key="r" className="text-success">On-time ✓</span>],
             [
               'Link',
