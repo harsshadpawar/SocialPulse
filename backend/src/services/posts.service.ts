@@ -26,6 +26,17 @@ export interface UpdatePostInput {
   format?: Format;
   caption?: string;
   targetDatetime?: string | null; // ISO; explicit null clears (Draft only)
+  actualDatetime?: string; // Posted only (#18, #21) — edits recompute adherence implicitly
+  nativePostUrl?: string | null; // Posted only (#18); null clears
+}
+
+/** Small clock-skew allowance for "not in the future" checks. */
+const FUTURE_SKEW_MS = 2 * 60_000;
+
+function assertNotFuture(actual: Date, now: Date): void {
+  if (actual.getTime() > now.getTime() + FUTURE_SKEW_MS) {
+    throw new AppError(400, 'actual_in_future', "The posted time can't be in the future.");
+  }
 }
 
 export async function updatePost(id: string, input: UpdatePostInput, now: Date): Promise<PostView> {
@@ -40,6 +51,18 @@ export async function updatePost(id: string, input: UpdatePostInput, now: Date):
   if (input.targetDatetime !== undefined && !caps.canEditTarget) {
     // Frozen invariant #10: target immutable from Due onward. Calm conflict, not a scolding.
     throw new AppError(409, 'target_locked', 'The target time is locked once a post is due.');
+  }
+
+  if (input.actualDatetime !== undefined) {
+    if (!caps.canEditActual) {
+      throw new AppError(409, 'not_posted_yet', 'The posted time exists only after Mark Posted.');
+    }
+    assertNotFuture(new Date(input.actualDatetime), now);
+  }
+
+  if (input.nativePostUrl !== undefined && !caps.canSetUrl) {
+    // Tweak 3: the URL field must not exist before Mark Posted (#18).
+    throw new AppError(409, 'not_posted_yet', 'The post link is added after Mark Posted.');
   }
 
   const platform = input.platform ?? post.platform;
@@ -57,11 +80,48 @@ export async function updatePost(id: string, input: UpdatePostInput, now: Date):
       ...(input.targetDatetime !== undefined
         ? { targetDatetime: input.targetDatetime === null ? null : new Date(input.targetDatetime) }
         : {}),
+      ...(input.actualDatetime !== undefined ? { actualDatetime: new Date(input.actualDatetime) } : {}),
+      ...(input.nativePostUrl !== undefined ? { nativePostUrl: input.nativePostUrl } : {}),
     },
     include: { idea: true },
   });
 
   return toView(toDomain(updated), now);
+}
+
+export interface MarkPostedInput {
+  actualDatetime?: string; // ISO; defaults to now (the sheet prefill is editable)
+  nativePostUrl?: string; // optional — "Skip link for now" is a first-class path
+}
+
+/** The Mark Posted attestation (brief §7). Works from Planned (#4), Due, and Missed (non-destructive). */
+export async function markPosted(id: string, input: MarkPostedInput, now: Date): Promise<{ post: PostView; event: TransitionEvent }> {
+  const post = await loadDomainPost(id);
+  const caps = deriveCapabilities(post, now);
+
+  if (post.actualDatetime !== null) {
+    throw new AppError(409, 'post_already_posted', 'This post is already marked posted.');
+  }
+  if (!caps.canMarkPosted) {
+    // Only remaining reason: not Ready (e.g. a missed draft) — gentle, plan-focused.
+    throw new AppError(409, 'not_ready', 'Mark this post Ready before marking it posted.');
+  }
+
+  const actual = input.actualDatetime !== undefined ? new Date(input.actualDatetime) : now;
+  assertNotFuture(actual, now);
+
+  const updated = await prisma.platformPost.update({
+    where: { id },
+    data: {
+      actualDatetime: actual,
+      ...(input.nativePostUrl !== undefined && input.nativePostUrl !== '' ? { nativePostUrl: input.nativePostUrl } : {}),
+    },
+    include: { idea: true },
+  });
+
+  const event: TransitionEvent = { type: 'PostMarkedPosted', postId: id, at: now, actualDatetime: actual };
+  // v0.2 hook: audit trail (AdherenceEvent) attaches to `event` here.
+  return { post: toView(toDomain(updated), now), event };
 }
 
 export interface MarkReadyResult {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { PostView } from '../api/types';
+import { MarkPostedSheet } from './MarkPostedSheet';
 import { formatTargetLine, formatTime } from '../lib/format';
 import {
   COPY_CAPTION_DISABLED_HELPER,
@@ -19,6 +20,7 @@ interface Props {
 /** Renders server-derived state only — no status logic lives here (ADR-3). */
 export function TodayCard({ post }: Props) {
   const [copied, setCopied] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const platformLabel = PLATFORM_LABEL[post.platform];
   const canCopy = post.caption.length > 0;
 
@@ -99,16 +101,27 @@ export function TodayCard({ post }: Props) {
         </a>
       </div>
 
-      {/* Primary CTA — navigation states live (M2); Mark Posted lands in M4, Resolve item in M5. */}
-      {post.cardState === 'due' || post.cardState === 'missed' ? (
-        <button type="button" className="btn btn-primary" disabled title="Coming in the next slice">
-          {PRIMARY_CTA[post.cardState]}
+      {/* Primary CTA — state-driven (frozen CTA table). Resolve item lands in M5. */}
+      {post.cardState === 'due' ? (
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={!post.capabilities.canMarkPosted}
+          onClick={() => setSheetOpen(true)}
+        >
+          {PRIMARY_CTA.due}
+        </button>
+      ) : post.cardState === 'missed' ? (
+        <button type="button" className="btn btn-primary" disabled title="Resolve item arrives in M5">
+          {PRIMARY_CTA.missed}
         </button>
       ) : (
         <Link to={`/posts/${post.id}`} className="btn btn-primary">
           {PRIMARY_CTA[post.cardState]}
         </Link>
       )}
+
+      {sheetOpen && <MarkPostedSheet post={post} onClose={() => setSheetOpen(false)} />}
     </section>
   );
 }

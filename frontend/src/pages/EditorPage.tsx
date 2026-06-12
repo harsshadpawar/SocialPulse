@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchPost, markReady, updatePost } from '../api/client';
+import { MarkPostedSheet } from '../components/MarkPostedSheet';
+import { ResultCard } from '../components/ResultCard';
 import type { Format, Platform, PostView, ReadyMissing } from '../api/types';
 import {
   FORMAT_LABEL,
@@ -54,6 +56,7 @@ export function EditorPage() {
   const [targetLocal, setTargetLocal] = useState('');
   const [guidance, setGuidance] = useState<ReadyMissing | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
     if (post) {
@@ -101,6 +104,15 @@ export function EditorPage() {
   const isDue = post.cardState === 'due';
   const isPosted = post.cardState === 'posted';
   const canCopy = caption.trim().length > 0;
+
+  // The Result is a STATE inside the editor — never a separate page/route.
+  if (isPosted) {
+    return (
+      <Shell>
+        <ResultCard post={post} />
+      </Shell>
+    );
+  }
 
   return (
     <Shell>
@@ -232,8 +244,8 @@ export function EditorPage() {
           <button
             type="button"
             className={isDue ? 'btn btn-primary' : 'btn'}
-            disabled
-            title="The Mark Posted ritual arrives in M4"
+            disabled={!post.capabilities.canMarkPosted}
+            onClick={() => setSheetOpen(true)}
             style={{ width: '100%' }}
           >
             {MARK_POSTED}
@@ -250,7 +262,7 @@ export function EditorPage() {
         </section>
       )}
 
-      {isPosted && <p className="quiet">Result state arrives in M4.</p>}
+      {sheetOpen && <MarkPostedSheet post={post} onClose={() => setSheetOpen(false)} />}
     </Shell>
   );
 }

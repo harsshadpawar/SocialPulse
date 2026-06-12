@@ -82,3 +82,21 @@ export const SAVE_DRAFT = 'Save Draft';
 export const MARK_READY = 'Mark Ready';
 export const MARK_POSTED = 'Mark Posted';
 export const TARGET_LOCKED_NOTE = 'Locked — the target can no longer move.';
+
+/* ---- Mark Posted ritual + Result (the reward moment) ---- */
+export const SHEET_TITLE = 'Nice. Add the post link?';
+export const SHEET_URL_LABEL = 'Native post URL (optional)';
+export const SHEET_TIME_LABEL = 'Actual posted time';
+export const SAVE_RESULT = 'Save result';
+export const SKIP_LINK = 'Skip link for now';
+export const BACK_TO_TODAY = 'Back to Today';
+
+export const RESULT_TITLE: Record<'on_time' | 'late', string> = {
+  on_time: 'Posted on time',
+  late: "Posted — it's live",
+};
+
+export const RESULT_VOICE: Record<'on_time' | 'late', string> = {
+  on_time: "Posted on time. That's the rhythm.",
+  late: "Posted — a bit past your target, but it's live. Still counts.",
+};

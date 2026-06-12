@@ -47,3 +47,13 @@ export function updatePost(id: string, input: UpdatePostInput): Promise<PostView
 export function markReady(id: string): Promise<MarkReadyResponse> {
   return request<MarkReadyResponse>(`/api/posts/${id}/ready`, { method: 'POST' });
 }
+
+export function markPosted(
+  id: string,
+  input: { actualDatetime?: string; nativePostUrl?: string },
+): Promise<PostView> {
+  return request<{ post: PostView }>(`/api/posts/${id}/posted`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }).then((r) => r.post);
+}

@@ -54,4 +54,6 @@ export interface UpdatePostInput {
   format?: Format;
   caption?: string;
   targetDatetime?: string | null;
+  actualDatetime?: string; // Posted only — server enforces
+  nativePostUrl?: string | null; // Posted only — server enforces
 }

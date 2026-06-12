@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { parseOr400 } from '../middleware/validate';
-import { getPostView, markReady, updatePost } from '../services/posts.service';
+import { getPostView, markPosted, markReady, updatePost } from '../services/posts.service';
 
 const IdParamSchema = z.object({ id: z.string().uuid('Not a valid post id.') });
 
@@ -11,8 +11,17 @@ const UpdatePostSchema = z
     format: z.enum(['text_post', 'short_post', 'short_video', 'reel']).optional(),
     caption: z.string().max(10_000).optional(),
     targetDatetime: z.string().datetime({ offset: true }).nullable().optional(),
+    actualDatetime: z.string().datetime({ offset: true }).optional(), // Posted only — service enforces
+    nativePostUrl: z.string().url().max(2_000).nullable().optional(), // Posted only — service enforces
   })
-  .strict(); // nativePostUrl / actualDatetime are NOT accepted here — they belong to Mark Posted (M4)
+  .strict();
+
+const MarkPostedSchema = z
+  .object({
+    actualDatetime: z.string().datetime({ offset: true }).optional(),
+    nativePostUrl: z.union([z.string().url().max(2_000), z.literal('')]).optional(),
+  })
+  .strict();
 
 export const postsRouter = Router();
 
@@ -46,5 +55,16 @@ postsRouter.post('/api/posts/:id/ready', (req, res, next) => {
     .catch(next);
 });
 
-// M4 adds: POST /api/posts/:id/posted
+postsRouter.post('/api/posts/:id/posted', (req, res, next) => {
+  const now = new Date();
+  Promise.resolve()
+    .then(() => ({
+      params: parseOr400(IdParamSchema, req.params),
+      body: parseOr400(MarkPostedSchema, req.body ?? {}),
+    }))
+    .then(({ params, body }) => markPosted(params.id, body, now))
+    .then(({ post }) => res.json({ post }))
+    .catch(next);
+});
+
 // M5 adds: POST /api/posts/:id/keep-missed
