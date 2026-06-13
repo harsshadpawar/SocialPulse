@@ -1,7 +1,7 @@
 // The product's voice. Core strings VERBATIM from the handoff README; platform substitution
 // per the hi-fi variants board: "Your {platform} {format-noun} is due now."
 // Server owns state selection; this file owns the words (ADR-3 refinement).
-import type { CardState, DraftSubState, Platform, ReadyMissing } from '../api/types';
+import type { CardState, DraftSubState, EffortScore, Platform, ReadyMissing, WeeklyLoad } from '../api/types';
 import type { Tone } from '../components/ui';
 import { PLATFORM_META } from './platform';
 
@@ -99,6 +99,33 @@ export function workDoneSub(postedOnDay: number, postedInWeek: number): string {
 
 export const QUICK_START = 'Quick Start';
 export const QUICK_START_HELPER = 'Start from your core message — refine after.';
+
+/* ── v0.2c "Width" — derived effort (D-38) + multi-platform repurpose (D-37) ── */
+
+export const EFFORT_LABEL: Record<EffortScore, string> = {
+  low: 'Low effort',
+  medium: 'Medium effort',
+  high: 'High effort',
+};
+
+const LOAD_WORD: Record<WeeklyLoad, string> = {
+  light: 'light load',
+  moderate: 'moderate load',
+  full: 'full load',
+};
+
+/** Calm capacity line (CS-12). Empty when nothing is planned this week. */
+export function weeklyEffortLine(posts: number, load: WeeklyLoad): string {
+  if (posts === 0) return '';
+  const noun = posts === 1 ? 'post' : 'posts';
+  return `${posts} ${noun} planned this week · ${LOAD_WORD[load]}`;
+}
+
+export const REPURPOSE_HEADING = 'Repurpose this idea';
+export const REPURPOSE_HELPER = 'Spin up a sibling post on another platform — starts from this copy.';
+export function repurposeToLabel(platformLabel: string): string {
+  return `Repurpose to ${platformLabel}`;
+}
 
 /* ── CTAs (frozen CTA table) ── */
 

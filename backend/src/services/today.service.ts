@@ -3,10 +3,12 @@
 import { deriveAdherence } from '../domain/adherence';
 import { deriveCapabilities } from '../domain/capabilities';
 import { deriveCardState, deriveWorkIsDone, selectTodayPost } from '../domain/selector';
+import { deriveEffort, deriveWeeklyEffort } from '../domain/effort';
+import type { WeeklyEffort } from '../domain/effort';
 import { derivePostingStatus } from '../domain/postingStatus';
 import { deriveDraftSubState, deriveDueNotReady } from '../domain/subState';
 import { isSameDay, isSameWeek } from '../domain/time';
-import type { AdherenceStatus, Capabilities, CardState, DomainPost, DraftSubState, Format, Platform, PostingStatus, Readiness } from '../domain/types';
+import type { AdherenceStatus, Capabilities, CardState, DomainPost, DraftSubState, EffortScore, Format, Platform, PostingStatus, Readiness } from '../domain/types';
 import { prisma } from '../db/client';
 
 /** Wire DTO — dates as ISO strings, everything derived server-side (ADR-3). */
@@ -29,6 +31,10 @@ export interface PostView {
   draftSubState: DraftSubState | null;
   /** v0.2a (D-31): the key failure mode — due while still draft. */
   dueNotReady: boolean;
+  /** v0.2c (D-38): derived from format — never stored. */
+  effortScore: EffortScore;
+  /** v0.2c (D-37): platforms this idea has no post on yet — repurpose targets. [] on Today. */
+  repurposeTargets: Platform[];
   capabilities: Capabilities;
 }
 
@@ -46,6 +52,8 @@ export interface TodayView {
   target: { dailyTarget: number | null; weeklyTarget: number | null };
   /** v0.2b (D-34): derived "Today's work is done" — nothing actionable left + posted today. */
   workIsDone: boolean;
+  /** v0.2c (D-38): planned effort for this Dubai ISO week — derived capacity awareness. */
+  weeklyEffort: WeeklyEffort;
 }
 
 /** Prisma row (with idea) → plain domain object. The only place this mapping exists. */
@@ -82,7 +90,7 @@ export function toDomain(row: PostRowShape): DomainPost {
   };
 }
 
-export function toView(post: DomainPost, now: Date): PostView {
+export function toView(post: DomainPost, now: Date, repurposeTargets: Platform[] = []): PostView {
   return {
     id: post.id,
     ideaTitle: post.ideaTitle,
@@ -100,6 +108,8 @@ export function toView(post: DomainPost, now: Date): PostView {
     cardState: deriveCardState(post, now),
     draftSubState: deriveDraftSubState(post),
     dueNotReady: deriveDueNotReady(post, now),
+    effortScore: deriveEffort(post.format),
+    repurposeTargets,
     capabilities: deriveCapabilities(post, now),
   };
 }
@@ -127,6 +137,7 @@ export async function getTodayView(now: Date, tz: string): Promise<TodayView> {
     postedInWeekCount,
     target: { dailyTarget: targetRow?.dailyTarget ?? null, weeklyTarget: targetRow?.weeklyTarget ?? null },
     workIsDone: deriveWorkIsDone(posts, now, tz),
+    weeklyEffort: deriveWeeklyEffort(posts, now, tz),
   };
 
   const selected = selectTodayPost(posts, now, tz);

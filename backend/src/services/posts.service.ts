@@ -3,7 +3,7 @@
 import { deriveCapabilities } from '../domain/capabilities';
 import { firstMissingForReady } from '../domain/readyGate';
 import type { ReadyMissing } from '../domain/readyGate';
-import { isValidPair } from '../domain/constants';
+import { ALL_PLATFORMS, PLATFORM_FORMATS, isValidPair } from '../domain/constants';
 import type { Format, Platform } from '../domain/types';
 import type { TransitionEvent } from '../domain/transitions';
 import { AppError } from '../middleware/error';
@@ -17,8 +17,20 @@ async function loadDomainPost(id: string) {
   return toDomain(row);
 }
 
+/** v0.2c (D-37): the platforms this idea has no post on yet — repurpose targets. */
+function repurposeTargetsFor(usedPlatforms: Platform[]): Platform[] {
+  const used = new Set(usedPlatforms);
+  return ALL_PLATFORMS.filter((p) => !used.has(p));
+}
+
 export async function getPostView(id: string, now: Date): Promise<PostView> {
-  return toView(await loadDomainPost(id), now);
+  const row = await prisma.platformPost.findUnique({
+    where: { id },
+    include: { idea: { include: { posts: { select: { platform: true } } } } },
+  });
+  if (!row) throw new AppError(404, 'post_not_found', 'This post does not exist.');
+  const targets = repurposeTargetsFor(row.idea.posts.map((p) => p.platform));
+  return toView(toDomain(row), now, targets);
 }
 
 export interface UpdatePostInput {
@@ -118,6 +130,36 @@ export async function updatePost(id: string, input: UpdatePostInput, now: Date):
   });
 
   return toView(toDomain(updated), now);
+}
+
+/** Repurpose (v0.2c, D-37): spawn a sibling PlatformPost on another platform under the same idea.
+ *  Caption seeds from the SOURCE post's caption; falls back to the idea's core message when blank
+ *  (real repurposing starts from existing copy). One post per platform per idea. Logs 'created'. */
+export async function repurpose(id: string, platform: Platform, now: Date): Promise<PostView> {
+  const source = await prisma.platformPost.findUnique({
+    where: { id },
+    include: { idea: { include: { posts: { select: { platform: true } } } } },
+  });
+  if (!source) throw new AppError(404, 'post_not_found', 'This post does not exist.');
+  const used = source.idea.posts.map((p) => p.platform);
+  if (used.includes(platform)) {
+    throw new AppError(409, 'platform_exists', `This idea already has a ${platform} post.`);
+  }
+  const format = PLATFORM_FORMATS[platform][0]!; // v0.1 has exactly one format per platform
+  const seededCaption = source.caption.trim() !== '' ? source.caption : source.idea.coreMessage;
+
+  const created = await prisma.$transaction(async (tx) => {
+    const row = await tx.platformPost.create({
+      data: { contentIdeaId: source.contentIdeaId, platform, format, caption: seededCaption },
+      include: { idea: true },
+    });
+    await tx.adherenceEvent.create({
+      data: { platformPostId: row.id, eventType: 'created', at: now, newValue: `${platform}/${format}` },
+    });
+    return row;
+  });
+
+  return toView(toDomain(created), now, repurposeTargetsFor([...used, platform]));
 }
 
 /** Quick Start (v0.2b, D-35): seed the caption from the idea's core message so a blank draft can

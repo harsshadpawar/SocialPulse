@@ -12,6 +12,7 @@ import {
   commandFor,
   commandSub,
   eyebrowFor,
+  weeklyEffortLine,
   workDoneSub,
 } from '../lib/microcopy';
 
@@ -88,6 +89,11 @@ export function TodayPage() {
               </p>
             )}
             <TargetsStrip today={data} />
+            {data.weeklyEffort.posts > 0 && (
+              <p className="mt-2 text-center text-[12.5px] text-dim">
+                {weeklyEffortLine(data.weeklyEffort.posts, data.weeklyEffort.load)}
+              </p>
+            )}
           </>
         )}
       </main>

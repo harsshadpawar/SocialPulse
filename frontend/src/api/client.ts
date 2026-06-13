@@ -1,4 +1,4 @@
-import type { MarkReadyResponse, PostView, TargetView, TodayView, UpdatePostInput } from './types';
+import type { MarkReadyResponse, Platform, PostView, TargetView, TodayView, UpdatePostInput } from './types';
 
 export class ApiError extends Error {
   constructor(
@@ -58,6 +58,13 @@ export function keepAsMissed(id: string): Promise<PostView> {
 
 export function quickStart(id: string): Promise<PostView> {
   return request<{ post: PostView }>(`/api/posts/${id}/quick-start`, { method: 'POST' }).then((r) => r.post);
+}
+
+export function repurpose(id: string, platform: Platform): Promise<PostView> {
+  return request<{ post: PostView }>(`/api/posts/${id}/repurpose`, {
+    method: 'POST',
+    body: JSON.stringify({ platform }),
+  }).then((r) => r.post);
 }
 
 export function markPosted(

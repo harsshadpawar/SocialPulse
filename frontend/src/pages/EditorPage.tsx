@@ -3,14 +3,15 @@
 // All status logic is server-derived (ADR-3); this page renders and mutates only.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { fetchPost, markReady, quickStart, updatePost } from '../api/client';
+import { useNavigate, useParams } from 'react-router-dom';
+import { fetchPost, markReady, quickStart, repurpose, updatePost } from '../api/client';
 import type { Format, Platform, PostView, ReadyMissing } from '../api/types';
 import { MarkPostedSheet } from '../components/MarkPostedSheet';
 import { ResultCard } from '../components/ResultCard';
 import { BtnPrimary, BtnSecondary, Eyebrow, ICard, IField, IHeader, ISelect, PlatformBadge } from '../components/ui';
 import { formatTargetLine, formatTime } from '../lib/format';
 import {
+  EFFORT_LABEL,
   MARK_POSTED,
   MARK_READY,
   MISSED_MESSAGE,
@@ -19,10 +20,13 @@ import {
   QUICK_START_HELPER,
   READY_CONFIRM,
   READY_GUIDANCE,
+  REPURPOSE_HEADING,
+  REPURPOSE_HELPER,
   SAVE_DRAFT,
   SCHEDULE_HELPER,
   captionPlaceholder,
   dueMessage,
+  repurposeToLabel,
 } from '../lib/microcopy';
 import { PLATFORM_META } from '../lib/platform';
 
@@ -84,6 +88,7 @@ function StageDone({ letter, title, summary, onEdit }: { letter: string; title: 
 
 export function EditorPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: post, isPending, isError } = useQuery({
@@ -125,6 +130,14 @@ export function EditorPage() {
   const quickStartMut = useMutation({
     mutationFn: () => quickStart(id!),
     onSuccess: (updated) => refresh(updated),
+  });
+
+  const repurposeMut = useMutation({
+    mutationFn: (platform: Platform) => repurpose(id!, platform),
+    onSuccess: (created) => {
+      void queryClient.invalidateQueries({ queryKey: ['today'] });
+      navigate(`/posts/${created.id}`); // open the new sibling
+    },
   });
 
   const ready = useMutation({
@@ -201,6 +214,7 @@ export function EditorPage() {
         <h1 className="mt-3 font-serif text-[28px] leading-[1.2]">“{post.ideaTitle}”</h1>
         <p className="mt-2 flex items-center gap-3 text-[14px] text-dim">
           <PlatformBadge name={meta.label} color={meta.color} /> <span>{meta.formatLabel}</span>
+          <span>· {EFFORT_LABEL[post.effortScore]}</span>
           {post.targetDatetime && <span className="tabular-nums">· target {formatTargetLine(post.targetDatetime)}</span>}
         </p>
 
@@ -363,6 +377,26 @@ export function EditorPage() {
             </div>
           )}
         </div>
+
+        {/* v0.2c (D-37): repurpose this idea to platforms it isn't on yet. (Posted posts return earlier.) */}
+        {post.repurposeTargets.length > 0 && (
+          <div className="mt-8 rounded-xl border border-ink/10 bg-paper px-7 py-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-dim">{REPURPOSE_HEADING}</p>
+            <p className="mt-1.5 text-[13.5px] text-dim">{REPURPOSE_HELPER}</p>
+            <div className="mt-3.5 flex flex-wrap gap-2.5">
+              {post.repurposeTargets.map((p) => (
+                <BtnSecondary
+                  key={p}
+                  className="text-[13.5px]"
+                  disabled={repurposeMut.isPending}
+                  onClick={() => repurposeMut.mutate(p)}
+                >
+                  {repurposeToLabel(PLATFORM_META[p].label)}
+                </BtnSecondary>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
 
       {sheetOpen && <MarkPostedSheet post={post} onClose={() => setSheetOpen(false)} />}

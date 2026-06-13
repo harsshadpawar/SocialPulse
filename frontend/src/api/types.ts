@@ -8,6 +8,14 @@ export type PostingStatus = 'planned' | 'due' | 'posted' | 'missed';
 export type AdherenceStatus = 'not_applicable' | 'on_time' | 'late' | 'missed';
 export type CardState = 'draft' | 'planned_ready' | 'due' | 'posted' | 'missed';
 export type DraftSubState = 'needs_caption' | 'needs_schedule' | 'ready_to_mark';
+export type EffortScore = 'low' | 'medium' | 'high';
+export type WeeklyLoad = 'light' | 'moderate' | 'full';
+
+export interface WeeklyEffort {
+  posts: number;
+  score: number;
+  load: WeeklyLoad;
+}
 
 export interface Capabilities {
   canEditPrepare: boolean;
@@ -37,6 +45,8 @@ export interface PostView {
   cardState: CardState;
   draftSubState: DraftSubState | null;
   dueNotReady: boolean;
+  effortScore: EffortScore;
+  repurposeTargets: Platform[];
   capabilities: Capabilities;
 }
 
@@ -50,6 +60,8 @@ export interface TodayView {
   target: TargetView;
   /** v0.2b (D-34): derived "Today's work is done" — nothing actionable left + posted today. */
   workIsDone: boolean;
+  /** v0.2c (D-38): planned effort for this Dubai ISO week. */
+  weeklyEffort: WeeklyEffort;
 }
 
 export interface TargetView {

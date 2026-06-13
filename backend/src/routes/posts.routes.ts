@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { parseOr400 } from '../middleware/validate';
-import { acknowledgeMissed, getPostView, markPosted, markReady, quickStart, updatePost } from '../services/posts.service';
+import { acknowledgeMissed, getPostView, markPosted, markReady, quickStart, repurpose, updatePost } from '../services/posts.service';
 
 const IdParamSchema = z.object({ id: z.string().uuid('Not a valid post id.') });
 
@@ -22,6 +22,8 @@ const MarkPostedSchema = z
     nativePostUrl: z.union([z.string().url().max(2_000), z.literal('')]).optional(),
   })
   .strict();
+
+const RepurposeSchema = z.object({ platform: z.enum(['linkedin', 'x', 'youtube', 'instagram']) }).strict();
 
 export const postsRouter = Router();
 
@@ -64,6 +66,18 @@ postsRouter.post('/api/posts/:id/posted', (req, res, next) => {
     }))
     .then(({ params, body }) => markPosted(params.id, body, now))
     .then(({ post }) => res.json({ post }))
+    .catch(next);
+});
+
+postsRouter.post('/api/posts/:id/repurpose', (req, res, next) => {
+  const now = new Date();
+  Promise.resolve()
+    .then(() => ({
+      params: parseOr400(IdParamSchema, req.params),
+      body: parseOr400(RepurposeSchema, req.body),
+    }))
+    .then(({ params, body }) => repurpose(params.id, body.platform, now))
+    .then((post) => res.json({ post }))
     .catch(next);
 });
 
