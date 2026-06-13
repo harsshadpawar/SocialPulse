@@ -20,15 +20,18 @@ export interface WeekRealism {
   state: WeekState;
 }
 
-/** Overload fires when effort exceeds capacity OR two+ high-effort posts land on one day (§7). */
+/** Overload fires when effort exceeds capacity OR two+ high-effort posts land on one day (§7).
+ *  v0.2h: `weekRef` selects WHICH week (defaults to now); post STATUS (missed) is always derived
+ *  against the real `now`, so a navigated future week reads its posts as planned, not missed. */
 export function deriveWeekRealism(
   posts: readonly DomainPost[],
   now: Date,
   tz: string,
   capacity: number | null,
+  weekRef: Date = now,
 ): WeekRealism {
-  const inWeek = posts.filter((p) => p.targetDatetime !== null && isSameWeek(p.targetDatetime, now, tz));
-  const totalEffort = deriveWeeklyEffort(posts, now, tz).score; // one effort derivation (v0.2c)
+  const inWeek = posts.filter((p) => p.targetDatetime !== null && isSameWeek(p.targetDatetime, weekRef, tz));
+  const totalEffort = deriveWeeklyEffort(posts, now, tz, weekRef).score; // one effort derivation (v0.2c)
 
   const highByDay = new Map<string, number>();
   for (const p of inWeek) {

@@ -39,10 +39,11 @@ function loadFor(score: number): WeeklyLoad {
   return 'full';
 }
 
-/** v0.2c (D-38): planned effort for the current Dubai ISO week — fully derived, no storage.
- *  Counts posts whose target falls in this week (reuses the v0.2a isSameWeek helper). */
-export function deriveWeeklyEffort(posts: readonly DomainPost[], now: Date, tz: string): WeeklyEffort {
-  const inWeek = posts.filter((p) => p.targetDatetime !== null && isSameWeek(p.targetDatetime, now, tz));
+/** v0.2c (D-38): planned effort for a Dubai ISO week — fully derived, no storage.
+ *  Counts posts whose target falls in the week containing `weekRef` (defaults to now, so existing
+ *  current-week callers are unaffected; the calendar passes a navigated anchor). v0.2h. */
+export function deriveWeeklyEffort(posts: readonly DomainPost[], now: Date, tz: string, weekRef: Date = now): WeeklyEffort {
+  const inWeek = posts.filter((p) => p.targetDatetime !== null && isSameWeek(p.targetDatetime, weekRef, tz));
   const score = inWeek.reduce((sum, p) => sum + WEIGHT[deriveEffort(p.format)], 0);
   return { posts: inWeek.length, score, load: loadFor(score) };
 }

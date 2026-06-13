@@ -4,6 +4,7 @@ import type {
   Format,
   GoalsView,
   MarkReadyResponse,
+  MonthView,
   Platform,
   PostView,
   Reflection,
@@ -90,8 +91,12 @@ export function planWeek(
   });
 }
 
-export function fetchCalendar(): Promise<CalendarView> {
-  return request<CalendarView>('/api/calendar');
+export function fetchCalendar(anchor?: string): Promise<CalendarView> {
+  return request<CalendarView>(`/api/calendar${anchor ? `?anchor=${encodeURIComponent(anchor)}` : ''}`);
+}
+
+export function fetchCalendarMonth(anchor?: string): Promise<MonthView> {
+  return request<MonthView>(`/api/calendar/month${anchor ? `?anchor=${encodeURIComponent(anchor)}` : ''}`);
 }
 
 export function fetchGoals(): Promise<GoalsView> {

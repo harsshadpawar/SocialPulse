@@ -138,6 +138,35 @@ export interface CalendarView {
   days: CalDay[];
   effort: { used: number; capacity: number | null };
   realism: WeekRealism;
+  prevAnchor: string;
+  nextAnchor: string;
+  isCurrentWeek: boolean;
+}
+
+export interface CompactPost {
+  id: string;
+  ideaTitle: string;
+  platform: Platform;
+  postingStatus: PostingStatus;
+  cardState: CardState;
+  missed: boolean;
+}
+
+export interface MonthDay {
+  dayKey: string;
+  dayNum: number;
+  inMonth: boolean;
+  isToday: boolean;
+  posts: CompactPost[];
+}
+
+export interface MonthView {
+  monthKey: string;
+  label: string;
+  days: MonthDay[];
+  prevAnchor: string;
+  nextAnchor: string;
+  isCurrentMonth: boolean;
 }
 
 export interface Commitments {

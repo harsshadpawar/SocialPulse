@@ -1,10 +1,10 @@
-// v0.2d Calendar Week View — ported from hifi-v0.2d/hifi-calendar.jsx onto the live data.
-// Renders server-derived realism (ADR-3); the client owns the calm words. Never red.
+// v0.2d Calendar Week View + v0.2h Month view & navigation. Renders server-derived realism (ADR-3);
+// the client owns the calm words. Never red.
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchCalendar } from '../api/client';
-import type { CalPostView, EffortScore, WeekState } from '../api/types';
+import { fetchCalendar, fetchCalendarMonth } from '../api/client';
+import type { CalPostView, CompactPost, EffortScore, MonthDay, WeekState } from '../api/types';
 import { NavHeader } from '../components/NavHeader';
 import { BtnGhost, BtnPrimary, BtnSecondary, Eyebrow, StatusPill } from '../components/ui';
 import type { Tone } from '../components/ui';
@@ -28,6 +28,7 @@ const PIP_GREEN: Record<number, string> = { 1: 'oklch(72% 0.09 155)', 2: 'oklch(
 const EFFORT_N: Record<EffortScore, number> = { low: 1, medium: 2, high: 3 };
 const TIME_FMT = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Dubai' });
 const DOW_NAME = new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'UTC' });
+const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 function dayName(dayKey: string | null): string | null {
   if (!dayKey) return null;
@@ -39,11 +40,7 @@ function EffortPips({ n }: { n: number }) {
   return (
     <span className="inline-flex items-center gap-1" title={`effort ${n}`}>
       {[1, 2, 3].map((i) => (
-        <span
-          key={i}
-          className={`size-1.5 rounded-full ${i <= n ? '' : 'bg-ink/15'}`}
-          style={i <= n ? { backgroundColor: PIP_GREEN[i] } : undefined}
-        />
+        <span key={i} className={`size-1.5 rounded-full ${i <= n ? '' : 'bg-ink/15'}`} style={i <= n ? { backgroundColor: PIP_GREEN[i] } : undefined} />
       ))}
     </span>
   );
@@ -52,15 +49,9 @@ function EffortPips({ n }: { n: number }) {
 function CapacityMeter({ used, cap }: { used: number; cap: number | null }) {
   const legend = (
     <div className="mt-3 flex items-center gap-4 text-[12px] text-dim">
-      <span className="flex items-center gap-1.5">
-        <EffortPips n={1} /> low
-      </span>
-      <span className="flex items-center gap-1.5">
-        <EffortPips n={2} /> med
-      </span>
-      <span className="flex items-center gap-1.5">
-        <EffortPips n={3} /> high
-      </span>
+      <span className="flex items-center gap-1.5"><EffortPips n={1} /> low</span>
+      <span className="flex items-center gap-1.5"><EffortPips n={2} /> med</span>
+      <span className="flex items-center gap-1.5"><EffortPips n={3} /> high</span>
     </div>
   );
   if (cap === null) {
@@ -83,23 +74,13 @@ function CapacityMeter({ used, cap }: { used: number; cap: number | null }) {
         <div className="flex flex-1 items-center gap-1.5">
           {Array.from({ length: cap }).map((_, i) => {
             const filled = i < used;
-            const L = 76 - (cap > 1 ? i / (cap - 1) : 0) * 30; // light → dark green as the week fills
-            return (
-              <span
-                key={i}
-                className={`h-2.5 max-w-[44px] flex-1 rounded-full ${filled ? '' : 'bg-success/15'}`}
-                style={filled ? { backgroundColor: `oklch(${L}% 0.1 155)` } : undefined}
-              />
-            );
+            const L = 76 - (cap > 1 ? i / (cap - 1) : 0) * 30;
+            return <span key={i} className={`h-2.5 max-w-[44px] flex-1 rounded-full ${filled ? '' : 'bg-success/15'}`} style={filled ? { backgroundColor: `oklch(${L}% 0.1 155)` } : undefined} />;
           })}
           {over > 0 && <span className="mx-1 h-4 w-px bg-ink/25" />}
-          {Array.from({ length: over }).map((_, i) => (
-            <span key={`o${i}`} className="h-2.5 max-w-[44px] flex-1 rounded-full bg-late/55" />
-          ))}
+          {Array.from({ length: over }).map((_, i) => <span key={`o${i}`} className="h-2.5 max-w-[44px] flex-1 rounded-full bg-late/55" />)}
         </div>
-        <span className={`whitespace-nowrap text-[14px] font-semibold tabular-nums ${used > cap ? 'text-late' : 'text-ink'}`}>
-          {used} of {cap} pts
-        </span>
+        <span className={`whitespace-nowrap text-[14px] font-semibold tabular-nums ${used > cap ? 'text-late' : 'text-ink'}`}>{used} of {cap} pts</span>
       </div>
       {legend}
     </div>
@@ -117,13 +98,7 @@ function CalPost({ post, onOpen }: { post: CalPostView; onOpen: () => void }) {
   const meta = PLATFORM_META[post.platform];
   const [tone, label] = postLabel(post);
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className={`flex flex-col gap-1.5 rounded-lg border p-2.5 text-left transition hover:border-ink/25 ${
-        post.missed ? 'border-dashed border-missed/40 bg-missed/5' : 'border-ink/12 bg-white'
-      }`}
-    >
+    <button type="button" onClick={onOpen} className={`flex flex-col gap-1.5 rounded-lg border p-2.5 text-left transition hover:border-ink/25 ${post.missed ? 'border-dashed border-missed/40 bg-missed/5' : 'border-ink/12 bg-white'}`}>
       <span className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-dim">
         <span className="size-[6px] rounded-full" style={{ backgroundColor: meta.color }} />
         {meta.label}
@@ -133,111 +108,153 @@ function CalPost({ post, onOpen }: { post: CalPostView; onOpen: () => void }) {
         <span className="whitespace-nowrap text-[11px] tabular-nums text-dim">{TIME_FMT.format(new Date(post.targetDatetime))}</span>
         <EffortPips n={EFFORT_N[post.effortScore]} />
       </div>
-      <div>
-        <StatusPill tone={tone}>
-          <span className="text-[11px]">{label}</span>
-        </StatusPill>
-      </div>
+      <div><StatusPill tone={tone}><span className="text-[11px]">{label}</span></StatusPill></div>
     </button>
+  );
+}
+
+// Month cell — compact, status-coloured left border.
+function monthTone(p: CompactPost): string {
+  if (p.missed) return 'border-l-missed';
+  if (p.postingStatus === 'posted') return 'border-l-success';
+  if (p.postingStatus === 'due') return 'border-l-accent';
+  return p.cardState === 'planned_ready' ? 'border-l-accent' : 'border-l-ink/25';
+}
+
+function MonthCell({ day, onOpen }: { day: MonthDay; onOpen: (id: string) => void }) {
+  return (
+    <div className={`flex min-h-[96px] flex-col rounded-lg border p-1.5 ${day.isToday ? 'border-accent/30 bg-accent/[0.03]' : day.inMonth ? 'border-ink/10' : 'border-ink/5 bg-ink/[0.015]'}`}>
+      <div className={`px-1 text-[11px] font-semibold tabular-nums ${day.isToday ? 'text-accent' : day.inMonth ? 'text-ink/70' : 'text-ink/30'}`}>{day.dayNum}</div>
+      <div className="mt-1 flex flex-col gap-1">
+        {day.posts.slice(0, 3).map((p) => (
+          <button key={p.id} type="button" onClick={() => onOpen(p.id)} className={`flex items-center gap-1 rounded-sm border-l-2 bg-white px-1 py-0.5 text-left hover:bg-ink/5 ${monthTone(p)}`}>
+            <span className="size-[5px] shrink-0 rounded-full" style={{ backgroundColor: PLATFORM_META[p.platform].color }} />
+            <span className="truncate text-[10.5px] leading-tight">{p.ideaTitle}</span>
+          </button>
+        ))}
+        {day.posts.length > 3 && <span className="px-1 text-[10px] text-dim">+{day.posts.length - 3} more</span>}
+      </div>
+    </div>
   );
 }
 
 export function CalendarPage() {
   const navigate = useNavigate();
+  const [view, setView] = useState<'week' | 'month'>('week');
+  const [anchor, setAnchor] = useState<string | undefined>(undefined);
   const [dismissed, setDismissed] = useState(false);
-  const { data, isPending, isError } = useQuery({
-    queryKey: ['calendar'],
-    queryFn: fetchCalendar,
-    refetchOnWindowFocus: true,
-  });
+  useEffect(() => setDismissed(false), [anchor, view]);
 
-  const state: WeekState = data?.realism.state ?? 'empty';
-  const [tone, label] = calEyebrow(state);
-  const heavyDay = dayName(data?.realism.heavyDayKey ?? null);
-  const firstHigh = data?.days.flatMap((d) => d.posts).find((p) => p.effortScore === 'high');
-  const firstMissed = data?.days.flatMap((d) => d.posts).find((p) => p.missed);
+  const week = useQuery({ queryKey: ['calendar', anchor], queryFn: () => fetchCalendar(anchor), enabled: view === 'week', refetchOnWindowFocus: true });
+  const month = useQuery({ queryKey: ['calendar-month', anchor], queryFn: () => fetchCalendarMonth(anchor), enabled: view === 'month', refetchOnWindowFocus: true });
+
+  const label = view === 'week' ? week.data?.label : month.data?.label;
+  const prevA = view === 'week' ? week.data?.prevAnchor : month.data?.prevAnchor;
+  const nextA = view === 'week' ? week.data?.nextAnchor : month.data?.nextAnchor;
+  const isCurrent = view === 'week' ? week.data?.isCurrentWeek : month.data?.isCurrentMonth;
+
+  const navBtn = 'flex size-8 items-center justify-center rounded-lg border border-ink/15 text-[16px] text-ink hover:bg-ink/5 disabled:opacity-40';
 
   return (
     <div className="flex min-h-screen flex-col bg-paper font-sans text-ink antialiased">
-      <NavHeader active="calendar" right={data ? data.label : ''} />
-      <main className="mx-auto w-full max-w-[1280px] flex-1 px-10 pt-10 pb-10">
-        {isPending && <p className="text-[15px] text-dim">…</p>}
-        {isError && <p className="text-[15px] text-dim">Can't reach the API — is `npm run dev` running?</p>}
+      <NavHeader active="calendar" right="" />
+      <main className="mx-auto w-full max-w-[1280px] flex-1 px-10 pt-8 pb-10">
+        {/* Control bar — navigation + view toggle */}
+        <div className="mb-7 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button type="button" className={navBtn} onClick={() => prevA && setAnchor(prevA)} aria-label="Previous">‹</button>
+            <span className="min-w-[150px] text-center text-[15px] font-semibold tabular-nums">{label ?? '…'}</span>
+            <button type="button" className={navBtn} onClick={() => nextA && setAnchor(nextA)} aria-label="Next">›</button>
+            {isCurrent === false && (
+              <button type="button" className="ml-1 text-[13px] font-medium text-accent hover:underline" onClick={() => setAnchor(undefined)}>Today</button>
+            )}
+          </div>
+          <div className="inline-flex gap-1 rounded-lg bg-ink/5 p-1 text-[13.5px]">
+            {(['week', 'month'] as const).map((v) => (
+              <button key={v} type="button" onClick={() => setView(v)} className={`rounded-md px-4 py-1.5 capitalize ${view === v ? 'bg-white font-semibold text-ink shadow-[0_1px_2px_rgba(40,35,25,0.08)]' : 'text-dim hover:text-ink'}`}>{v}</button>
+            ))}
+          </div>
+        </div>
 
-        {data && (
+        {/* ── WEEK VIEW ── */}
+        {view === 'week' && (
           <>
-            <Eyebrow tone={tone} pulse={state === 'overload'}>
-              {label}
-            </Eyebrow>
-            <h1 className="mt-2.5 font-serif text-[30px] leading-[1.18]">{calCommand(state)}</h1>
+            {week.isPending && <p className="text-[15px] text-dim">…</p>}
+            {week.isError && <p className="text-[15px] text-dim">Can't reach the API — is `npm run dev` running?</p>}
+            {week.data && (() => {
+              const data = week.data;
+              const state: WeekState = data.realism.state;
+              const [tone, eyebrowLabel] = calEyebrow(state);
+              const heavyDay = dayName(data.realism.heavyDayKey);
+              const firstHigh = data.days.flatMap((d) => d.posts).find((p) => p.effortScore === 'high');
+              const firstMissed = data.days.flatMap((d) => d.posts).find((p) => p.missed);
+              return (
+                <>
+                  <Eyebrow tone={tone} pulse={state === 'overload'}>{eyebrowLabel}</Eyebrow>
+                  <h1 className="mt-2.5 font-serif text-[30px] leading-[1.18]">{calCommand(state)}</h1>
+                  <div className="mt-7"><CapacityMeter used={data.effort.used} cap={data.effort.capacity} /></div>
 
-            <div className="mt-7">
-              <CapacityMeter used={data.effort.used} cap={data.effort.capacity} />
-            </div>
-
-            {state === 'empty' ? (
-              <div className="mt-6 rounded-xl border border-ink/12 bg-white">
-                <div className="flex flex-col items-center gap-4 px-8 py-16 text-center">
-                  <span className="flex size-11 items-center justify-center rounded-full border border-ink/12 text-[18px] text-dim">＋</span>
-                  <p className="max-w-[44ch] text-[15px] leading-relaxed text-dim">{CAL_EMPTY_BODY}</p>
-                  <BtnPrimary className="mt-1 px-8" to="/ideas/new">
-                    Create idea
-                  </BtnPrimary>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-6 grid grid-cols-7 gap-2.5">
-                {data.days.map((d) => (
-                  <div
-                    key={d.dayKey}
-                    className={`flex flex-col gap-2 rounded-xl border p-2 ${d.isToday ? 'border-accent/30 bg-accent/[0.03]' : 'border-ink/8'}`}
-                  >
-                    <div className="flex items-baseline gap-1.5 px-1 pt-0.5">
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-dim">{d.dow}</span>
-                      <span className={`text-[14px] font-semibold tabular-nums ${d.isToday ? 'text-accent' : ''}`}>{d.dayNum}</span>
-                      {d.isToday && <span className="ml-auto size-1.5 rounded-full bg-accent" />}
+                  {state === 'empty' ? (
+                    <div className="mt-6 rounded-xl border border-ink/12 bg-white">
+                      <div className="flex flex-col items-center gap-4 px-8 py-16 text-center">
+                        <span className="flex size-11 items-center justify-center rounded-full border border-ink/12 text-[18px] text-dim">＋</span>
+                        <p className="max-w-[44ch] text-[15px] leading-relaxed text-dim">{CAL_EMPTY_BODY}</p>
+                        <BtnPrimary className="mt-1 px-8" to="/ideas/new">Create idea</BtnPrimary>
+                      </div>
                     </div>
-                    <div className="flex min-h-[150px] flex-col gap-2">
-                      {d.posts.map((p) => (
-                        <CalPost key={p.id} post={p} onOpen={() => navigate(`/posts/${p.id}`)} />
+                  ) : (
+                    <div className="mt-6 grid grid-cols-7 gap-2.5">
+                      {data.days.map((d) => (
+                        <div key={d.dayKey} className={`flex flex-col gap-2 rounded-xl border p-2 ${d.isToday ? 'border-accent/30 bg-accent/[0.03]' : 'border-ink/8'}`}>
+                          <div className="flex items-baseline gap-1.5 px-1 pt-0.5">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-dim">{d.dow}</span>
+                            <span className={`text-[14px] font-semibold tabular-nums ${d.isToday ? 'text-accent' : ''}`}>{d.dayNum}</span>
+                            {d.isToday && <span className="ml-auto size-1.5 rounded-full bg-accent" />}
+                          </div>
+                          <div className="flex min-h-[150px] flex-col gap-2">
+                            {d.posts.map((p) => <CalPost key={p.id} post={p} onOpen={() => navigate(`/posts/${p.id}`)} />)}
+                          </div>
+                        </div>
                       ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {state === 'overload' && !dismissed && (
-              <div className="mt-6 rounded-xl border border-accent/30 bg-accent/[0.05] p-6">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{REALISM_LABEL}</p>
-                <h3 className="mt-1.5 font-serif text-[21px]">This week may be heavy.</h3>
-                <p className="mt-2 max-w-[70ch] text-[14.5px] leading-relaxed text-ink/85">
-                  {realismBody(heavyDay, data.realism.totalEffort, data.realism.capacity)}
-                </p>
-                <p className="mt-2 max-w-[70ch] text-[14.5px] font-medium leading-relaxed">{realismFix(heavyDay)}</p>
-                <div className="mt-5 flex gap-3">
-                  {firstHigh && (
-                    <BtnPrimary className="px-5" onClick={() => navigate(`/posts/${firstHigh.id}`)}>
-                      {REALISM_ADJUST}
-                    </BtnPrimary>
                   )}
-                  <BtnGhost className="px-4" onClick={() => setDismissed(true)}>
-                    {REALISM_KEEP}
-                  </BtnGhost>
-                </div>
-              </div>
-            )}
 
-            {state === 'missed' && firstMissed && (
-              <div className="mt-6 rounded-xl border border-missed/25 bg-missed/[0.05] p-6">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-missed">{CAL_MISSED_LABEL}</p>
-                <h3 className="mt-1.5 font-serif text-[21px]">{calMissedHeading(dayName(firstMissed.targetDatetime.slice(0, 10)))}</h3>
-                <p className="mt-2 max-w-[70ch] text-[14.5px] leading-relaxed text-ink/85">{CAL_MISSED_BODY}</p>
-                <div className="mt-5 flex gap-3">
-                  <BtnPrimary className="px-5" onClick={() => navigate(`/posts/${firstMissed.id}`)}>
-                    {CAL_MISSED_RESOLVE}
-                  </BtnPrimary>
-                </div>
+                  {state === 'overload' && !dismissed && (
+                    <div className="mt-6 rounded-xl border border-accent/30 bg-accent/[0.05] p-6">
+                      <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{REALISM_LABEL}</p>
+                      <h3 className="mt-1.5 font-serif text-[21px]">This week may be heavy.</h3>
+                      <p className="mt-2 max-w-[70ch] text-[14.5px] leading-relaxed text-ink/85">{realismBody(heavyDay, data.realism.totalEffort, data.realism.capacity)}</p>
+                      <p className="mt-2 max-w-[70ch] text-[14.5px] font-medium leading-relaxed">{realismFix(heavyDay)}</p>
+                      <div className="mt-5 flex gap-3">
+                        {firstHigh && <BtnPrimary className="px-5" onClick={() => navigate(`/posts/${firstHigh.id}`)}>{REALISM_ADJUST}</BtnPrimary>}
+                        <BtnGhost className="px-4" onClick={() => setDismissed(true)}>{REALISM_KEEP}</BtnGhost>
+                      </div>
+                    </div>
+                  )}
+
+                  {state === 'missed' && firstMissed && (
+                    <div className="mt-6 rounded-xl border border-missed/25 bg-missed/[0.05] p-6">
+                      <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-missed">{CAL_MISSED_LABEL}</p>
+                      <h3 className="mt-1.5 font-serif text-[21px]">{calMissedHeading(dayName(firstMissed.targetDatetime.slice(0, 10)))}</h3>
+                      <p className="mt-2 max-w-[70ch] text-[14.5px] leading-relaxed text-ink/85">{CAL_MISSED_BODY}</p>
+                      <div className="mt-5 flex gap-3"><BtnPrimary className="px-5" onClick={() => navigate(`/posts/${firstMissed.id}`)}>{CAL_MISSED_RESOLVE}</BtnPrimary></div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </>
+        )}
+
+        {/* ── MONTH VIEW ── */}
+        {view === 'month' && (
+          <>
+            {month.isPending && <p className="text-[15px] text-dim">…</p>}
+            {month.isError && <p className="text-[15px] text-dim">Can't reach the API — is `npm run dev` running?</p>}
+            {month.data && (
+              <div className="grid grid-cols-7 gap-1.5">
+                {DOW.map((d) => <div key={d} className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-dim">{d}</div>)}
+                {month.data.days.map((day) => <MonthCell key={day.dayKey} day={day} onOpen={(id) => navigate(`/posts/${id}`)} />)}
               </div>
             )}
           </>
