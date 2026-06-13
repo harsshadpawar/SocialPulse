@@ -32,6 +32,12 @@ enum Format {
   short_post
   short_video
   reel
+  // v0.2f: editable formats per platform — type is now chosen, not fixed by platform.
+  thread
+  carousel
+  video
+  long_video
+  image
 }
 
 enum Readiness {

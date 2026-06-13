@@ -2,7 +2,17 @@
 // (Decisions #26, #28, #29 — see docs/selector-spec.md)
 
 export type Platform = 'linkedin' | 'x' | 'youtube' | 'instagram';
-export type Format = 'text_post' | 'short_post' | 'short_video' | 'reel';
+// v0.2f: formats are chosen per post (editable), no longer fixed one-per-platform.
+export type Format =
+  | 'text_post'
+  | 'short_post'
+  | 'short_video'
+  | 'reel'
+  | 'thread'
+  | 'carousel'
+  | 'video'
+  | 'long_video'
+  | 'image';
 export type Readiness = 'draft' | 'ready';
 
 /** Derived — never stored (ADR-2). */

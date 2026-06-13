@@ -3,12 +3,17 @@ import { describe, expect, it } from 'vitest';
 import { deriveEffort, deriveWeeklyEffort } from './effort';
 import { mkPost, NOW, TZ } from './testFixtures';
 
-describe('deriveEffort (v0.2c D-38)', () => {
-  it('maps each v0.1 format to its effort', () => {
-    expect(deriveEffort('text_post')).toBe('low'); // LinkedIn
-    expect(deriveEffort('short_post')).toBe('low'); // X
-    expect(deriveEffort('reel')).toBe('medium'); // Instagram
-    expect(deriveEffort('short_video')).toBe('high'); // YouTube
+describe('deriveEffort (v0.2f per-format)', () => {
+  it('maps each format to its effort', () => {
+    expect(deriveEffort('text_post')).toBe('low');
+    expect(deriveEffort('short_post')).toBe('low');
+    expect(deriveEffort('image')).toBe('low');
+    expect(deriveEffort('thread')).toBe('medium');
+    expect(deriveEffort('carousel')).toBe('medium');
+    expect(deriveEffort('reel')).toBe('medium');
+    expect(deriveEffort('short_video')).toBe('medium');
+    expect(deriveEffort('video')).toBe('high');
+    expect(deriveEffort('long_video')).toBe('high');
   });
 });
 
@@ -24,7 +29,7 @@ describe('deriveWeeklyEffort (v0.2c D-38)', () => {
     const posts = [
       mkPost({ format: 'text_post', targetDatetime: new Date('2026-06-09T09:00:00Z') }), // low = 1
       mkPost({ format: 'reel', targetDatetime: new Date('2026-06-11T09:00:00Z') }), // medium = 2
-      mkPost({ format: 'short_video', targetDatetime: new Date('2026-06-13T09:00:00Z') }), // high = 3
+      mkPost({ format: 'video', targetDatetime: new Date('2026-06-13T09:00:00Z') }), // high = 3
     ];
     expect(deriveWeeklyEffort(posts, NOW, TZ)).toEqual({ posts: 3, score: 6, load: 'moderate' });
   });

@@ -31,7 +31,12 @@ export function TodayPage() {
   });
 
   const ctx = data?.post
-    ? { platform: data.post.platform, draftSubState: data.post.draftSubState, dueNotReady: data.post.dueNotReady }
+    ? {
+        platform: data.post.platform,
+        format: data.post.format,
+        draftSubState: data.post.draftSubState,
+        dueNotReady: data.post.dueNotReady,
+      }
     : undefined;
 
   return (

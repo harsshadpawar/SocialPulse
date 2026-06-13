@@ -30,6 +30,7 @@ import {
   RESOLVE_MARK_POSTED_NOTE,
   dueMessage,
 } from '../lib/microcopy';
+import { FORMAT_META } from '../lib/formatMeta';
 import { PLATFORM_META } from '../lib/platform';
 import { BtnPrimary, BtnSecondary, ICard, PlatformBadge, Readout, StatusPill } from './ui';
 import { MarkPostedSheet } from './MarkPostedSheet';
@@ -114,7 +115,7 @@ export function TodayCard({ post }: { post: PostView }) {
           <Readout
             cells={[
               ['Platform', <PlatformBadge key="p" name={meta.label} color={meta.color} />],
-              ['Format', <span key="f">{meta.formatLabel}</span>],
+              ['Format', <span key="f">{FORMAT_META[post.format].label}</span>],
               ['Target', target],
               state === 'draft' || state === 'planned_ready' ? ['Readiness', readinessCell] : ['Status', statusCell],
             ]}

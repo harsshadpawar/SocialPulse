@@ -1,13 +1,15 @@
 // The product's voice. Core strings VERBATIM from the handoff README; platform substitution
 // per the hi-fi variants board: "Your {platform} {format-noun} is due now."
 // Server owns state selection; this file owns the words (ADR-3 refinement).
-import type { CardState, DraftSubState, EffortScore, GoalVerdict, Platform, ReadyMissing, WeeklyLoad, WeekState } from '../api/types';
+import type { CardState, DraftSubState, EffortScore, Format, GoalVerdict, Platform, ReadyMissing, WeeklyLoad, WeekState } from '../api/types';
 import type { Tone } from '../components/ui';
+import { FORMAT_META } from './formatMeta';
 import { PLATFORM_META } from './platform';
 
 /** The slice of PostView the voice functions need (server-derived, ADR-3). */
 export interface VoiceContext {
   platform: Platform;
+  format: Format;
   draftSubState: DraftSubState | null;
   dueNotReady: boolean;
 }
@@ -16,8 +18,9 @@ export interface VoiceContext {
 
 export function commandFor(state: CardState | 'empty', ctx?: VoiceContext): string {
   const meta = ctx ? PLATFORM_META[ctx.platform] : PLATFORM_META.linkedin;
+  const noun = ctx ? FORMAT_META[ctx.format].noun : 'post';
   // The key failure mode (D-31): due while still draft.
-  if (ctx?.dueNotReady) return `Your ${meta.label} ${meta.formatNoun} is due — it isn't marked ready yet.`;
+  if (ctx?.dueNotReady) return `Your ${meta.label} ${noun} is due — it isn't marked ready yet.`;
   switch (state) {
     case 'empty':
       return "Today is clear. Prep tomorrow's post while you have energy.";
@@ -34,7 +37,7 @@ export function commandFor(state: CardState | 'empty', ctx?: VoiceContext): stri
     case 'planned_ready':
       return 'One post is ready for today.';
     case 'due':
-      return `Your ${meta.label} ${meta.formatNoun} is due now.`;
+      return `Your ${meta.label} ${noun} is due now.`;
     case 'posted':
       return "You're on track — nothing left due today.";
     case 'missed':

@@ -28,14 +28,8 @@ import {
   dueMessage,
   repurposeToLabel,
 } from '../lib/microcopy';
+import { FORMAT_META, PLATFORM_FORMATS, defaultFormat } from '../lib/formatMeta';
 import { PLATFORM_META } from '../lib/platform';
-
-const PLATFORM_FORMAT: Record<Platform, Format> = {
-  linkedin: 'text_post',
-  x: 'short_post',
-  youtube: 'short_video',
-  instagram: 'reel',
-};
 
 const PLATFORM_OPTIONS = (Object.keys(PLATFORM_META) as Platform[]).map((p) => ({
   value: p,
@@ -98,6 +92,7 @@ export function EditorPage() {
   });
 
   const [platform, setPlatform] = useState<Platform>('linkedin');
+  const [format, setFormat] = useState<Format>('text_post');
   const [caption, setCaption] = useState('');
   const [targetLocal, setTargetLocal] = useState('');
   const [guidance, setGuidance] = useState<ReadyMissing | null>(null);
@@ -108,10 +103,17 @@ export function EditorPage() {
   useEffect(() => {
     if (post) {
       setPlatform(post.platform);
+      setFormat(post.format);
       setCaption(post.caption);
       setTargetLocal(isoToLocalInput(post.targetDatetime));
     }
   }, [post]);
+
+  // v0.2f: switching platform keeps the format if still valid, else falls back to the platform default.
+  function changePlatform(p: Platform) {
+    setPlatform(p);
+    if (!PLATFORM_FORMATS[p].includes(format)) setFormat(defaultFormat(p));
+  }
 
   function refresh(updated: PostView) {
     queryClient.setQueryData(['post', id], updated);
@@ -144,7 +146,7 @@ export function EditorPage() {
     mutationFn: async () => {
       await updatePost(id!, {
         platform,
-        format: PLATFORM_FORMAT[platform],
+        format,
         caption,
         ...(post?.capabilities.canEditTarget ? { targetDatetime: localInputToIso(targetLocal) } : {}),
       });
@@ -196,14 +198,14 @@ export function EditorPage() {
           ? ['accent', 'Ready']
           : ['dim', 'Draft'];
 
-  const prepareSummary = `${meta.label} · ${meta.formatLabel} · caption ${post.caption.length} chars`;
+  const prepareSummary = `${meta.label} · ${FORMAT_META[post.format].label} · caption ${post.caption.length} chars`;
   const scheduleSummary = post.targetDatetime ? `${formatTargetLine(post.targetDatetime)} · ${READY_CONFIRM}` : '';
 
   const showPrepareOpen = !isReady || reopened.a;
   const showScheduleOpen = !isReady || reopened.b;
 
   const flushPrepare = () =>
-    save.mutate({ platform, format: PLATFORM_FORMAT[platform], caption });
+    save.mutate({ platform, format, caption });
 
   return (
     <Shell right="Post editor">
@@ -213,7 +215,7 @@ export function EditorPage() {
         </Eyebrow>
         <h1 className="mt-3 font-serif text-[28px] leading-[1.2]">“{post.ideaTitle}”</h1>
         <p className="mt-2 flex items-center gap-3 text-[14px] text-dim">
-          <PlatformBadge name={meta.label} color={meta.color} /> <span>{meta.formatLabel}</span>
+          <PlatformBadge name={meta.label} color={meta.color} /> <span>{FORMAT_META[post.format].label}</span>
           <span>· {EFFORT_LABEL[post.effortScore]}</span>
           {post.targetDatetime && <span className="tabular-nums">· target {formatTargetLine(post.targetDatetime)}</span>}
         </p>
@@ -236,13 +238,14 @@ export function EditorPage() {
                     value={platform}
                     options={PLATFORM_OPTIONS}
                     disabled={!post.capabilities.canEditPrepare}
-                    onChange={(p) => setPlatform(p)}
+                    onChange={changePlatform}
                   />
                   <ISelect
                     label="Format"
-                    value={PLATFORM_FORMAT[platform]}
-                    options={[{ value: PLATFORM_FORMAT[platform], label: PLATFORM_META[platform].formatLabel }]}
-                    disabled
+                    value={format}
+                    options={PLATFORM_FORMATS[platform].map((f) => ({ value: f, label: FORMAT_META[f].label }))}
+                    disabled={!post.capabilities.canEditPrepare}
+                    onChange={setFormat}
                   />
                 </div>
                 <IField

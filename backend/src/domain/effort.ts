@@ -3,11 +3,18 @@
 import { isSameWeek } from './time';
 import type { DomainPost, EffortScore, Format } from './types';
 
+// v0.2f: effort is per-format. Text/short posts/images are quick; carousels/threads/reels/short videos
+// are medium; full videos are the heavy lift.
 const EFFORT_BY_FORMAT: Record<Format, EffortScore> = {
-  text_post: 'low', // LinkedIn text post
-  short_post: 'low', // X post
-  reel: 'medium', // Instagram reel
-  short_video: 'high', // YouTube video
+  text_post: 'low',
+  short_post: 'low',
+  image: 'low',
+  thread: 'medium',
+  carousel: 'medium',
+  reel: 'medium',
+  short_video: 'medium',
+  video: 'high',
+  long_video: 'high',
 };
 
 export function deriveEffort(format: Format): EffortScore {

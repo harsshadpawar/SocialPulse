@@ -8,7 +8,9 @@ const IdParamSchema = z.object({ id: z.string().uuid('Not a valid post id.') });
 const UpdatePostSchema = z
   .object({
     platform: z.enum(['linkedin', 'x', 'youtube', 'instagram']).optional(),
-    format: z.enum(['text_post', 'short_post', 'short_video', 'reel']).optional(),
+    format: z
+      .enum(['text_post', 'short_post', 'short_video', 'reel', 'thread', 'carousel', 'video', 'long_video', 'image'])
+      .optional(),
     caption: z.string().max(10_000).optional(),
     targetDatetime: z.string().datetime({ offset: true }).nullable().optional(),
     actualDatetime: z.string().datetime({ offset: true }).optional(), // Posted only — service enforces

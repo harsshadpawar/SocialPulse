@@ -18,6 +18,7 @@ function When({ iso }: { iso: string | null }) {
   );
 }
 import { BACK_TO_TODAY, RESULT_TITLE, RESULT_VOICE } from '../lib/microcopy';
+import { FORMAT_META } from '../lib/formatMeta';
 import { PLATFORM_META } from '../lib/platform';
 import { BtnPrimary, ICard, PlatformBadge, Readout } from './ui';
 
@@ -56,7 +57,7 @@ export function ResultCard({ post }: { post: PostView }) {
           </span>
           <h1 className="mt-5 font-serif text-[30px] leading-tight">{RESULT_TITLE[verdict]}</h1>
           <p className="mt-2 flex items-center gap-3 text-[14px] text-dim">
-            <PlatformBadge name={meta.label} color={meta.color} /> <span>{meta.formatLabel}</span>
+            <PlatformBadge name={meta.label} color={meta.color} /> <span>{FORMAT_META[post.format].label}</span>
           </p>
         </div>
 

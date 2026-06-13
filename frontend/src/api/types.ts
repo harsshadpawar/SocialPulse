@@ -2,7 +2,16 @@
 // The frontend renders these; it NEVER re-derives status (ADR-3).
 
 export type Platform = 'linkedin' | 'x' | 'youtube' | 'instagram';
-export type Format = 'text_post' | 'short_post' | 'short_video' | 'reel';
+export type Format =
+  | 'text_post'
+  | 'short_post'
+  | 'short_video'
+  | 'reel'
+  | 'thread'
+  | 'carousel'
+  | 'video'
+  | 'long_video'
+  | 'image';
 export type Readiness = 'draft' | 'ready';
 export type PostingStatus = 'planned' | 'due' | 'posted' | 'missed';
 export type AdherenceStatus = 'not_applicable' | 'on_time' | 'late' | 'missed';

@@ -6,7 +6,7 @@ import { deriveWeekRealism } from './planning';
 import { mkPost, NOW, TZ } from './testFixtures';
 
 const at = (iso: string) => new Date(iso);
-const video = (iso: string) => mkPost({ platform: 'youtube', format: 'short_video', targetDatetime: at(iso) }); // effort 3
+const video = (iso: string) => mkPost({ platform: 'youtube', format: 'long_video', targetDatetime: at(iso) }); // effort 3 (high)
 const textPost = (iso: string) => mkPost({ format: 'text_post', targetDatetime: at(iso) }); // effort 1
 const reel = (iso: string) => mkPost({ platform: 'instagram', format: 'reel', targetDatetime: at(iso) }); // effort 2
 
