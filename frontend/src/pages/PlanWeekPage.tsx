@@ -9,7 +9,7 @@ import type { Format, Platform } from '../api/types';
 import { BtnPrimary, BtnSecondary, Command, Eyebrow, ICard, IHeader } from '../components/ui';
 import { FORMAT_META } from '../lib/formatMeta';
 import { PLATFORM_META } from '../lib/platform';
-import { CADENCES, effortPoints, loadFor, proposeDateStr, proposeWeekPieces } from '../lib/planWeek';
+import { CADENCES, DEFAULT_TIME, effortPoints, loadFor, proposeDateStr, proposeWeekPieces } from '../lib/planWeek';
 import type { Cadence } from '../lib/planWeek';
 
 const ALL_PLATFORMS: Platform[] = ['linkedin', 'x', 'youtube', 'instagram'];
@@ -18,13 +18,13 @@ interface Piece {
   platform: Platform;
   format: Format;
   included: boolean;
-  dateKey: string; // YYYY-MM-DD, editable/clearable ('' = draft)
+  dateKey: string; // 'YYYY-MM-DDTHH:mm' (date + time), editable/clearable ('' = draft)
 }
 
 function tomorrowKey(): string {
   const d = new Date();
   d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
+  return `${d.toISOString().slice(0, 10)}T${DEFAULT_TIME}`;
 }
 
 const EFFORT_DOT: Record<string, string> = { low: 'text-dim', medium: 'text-accent', high: 'text-late' };
@@ -73,7 +73,7 @@ export function PlanWeekPage() {
           .map((p) => ({
             platform: p.platform,
             format: p.format,
-            targetDatetime: asDrafts || p.dateKey === '' ? null : new Date(`${p.dateKey}T09:00`).toISOString(),
+            targetDatetime: asDrafts || p.dateKey === '' ? null : new Date(p.dateKey).toISOString(),
           })),
       ),
     onSuccess: () => {
@@ -90,6 +90,9 @@ export function PlanWeekPage() {
   const totalPts = active.reduce((s, p) => s + effortPoints(p.format), 0);
   const load = loadFor(totalPts);
   const loadTone = load === 'full' ? 'text-late' : load === 'moderate' ? 'text-accent' : 'text-dim';
+  // The hub (this idea's own post) already exists. Show it as a locked context row so the proposal
+  // is never empty (e.g. a LinkedIn idea at Light), and the proposed spokes read as additions to it.
+  const showHub = platforms.includes(post.platform);
 
   function togglePlatform(p: Platform) {
     setPlatforms((cur) => (cur.includes(p) ? cur.filter((x) => x !== p) : [...cur, p]));
@@ -150,23 +153,15 @@ export function PlanWeekPage() {
           </>
         )}
 
-        {/* Empty proposal — e.g. only the hub's own platform at Light (its piece is excluded). */}
-        {platforms.length > 0 && pieces.length === 0 && (
-          <p className="mt-8 max-w-[60ch] text-[14px] leading-relaxed text-dim">
-            Nothing new to add yet — your idea is already a {FORMAT_META[post.format].label} on {PLATFORM_META[post.platform].label}. Add
-            another platform, or bump the cadence to Medium or Heavy for more pieces.
-          </p>
-        )}
-
-        {/* Step 3 — proposed pieces */}
-        {platforms.length > 0 && pieces.length > 0 && (
+        {/* Step 3 — proposed pieces (always shown once a platform is picked; the hub anchors the list) */}
+        {platforms.length > 0 && (showHub || pieces.length > 0) && (
           <>
             <div className="mt-8 mb-2.5 flex items-center justify-between">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-dim">Proposed — accept or remove</p>
               <label className="flex items-center gap-2 text-[12.5px] text-dim">
                 Start
                 <input
-                  type="date"
+                  type="datetime-local"
                   value={startKey}
                   onChange={(e) => setStartKey(e.target.value)}
                   className="rounded-md border border-ink/15 bg-white px-2 py-1 text-[12.5px] text-ink focus:outline-2 focus:outline-accent/60"
@@ -175,6 +170,18 @@ export function PlanWeekPage() {
             </div>
             <ICard>
               <div className="divide-y divide-ink/8">
+                {/* Hub row — the idea's own post; already exists, locked, not re-created. */}
+                {showHub && (
+                  <div className="flex items-center gap-3 bg-ink/[0.02] px-5 py-3">
+                    <input type="checkbox" checked disabled className="size-4 accent-[oklch(49%_0.08_200)] opacity-40" />
+                    <span className="size-[7px] rounded-full" style={{ backgroundColor: PLATFORM_META[post.platform].color }} />
+                    <span className="text-[14px] text-dim">
+                      {PLATFORM_META[post.platform].label} · {FORMAT_META[post.format].label}
+                    </span>
+                    <span className="rounded bg-ink/8 px-1.5 py-0.5 text-[10.5px] font-medium uppercase tracking-wide text-dim">this idea</span>
+                    <span className="ml-auto text-[12px] text-dim">already created</span>
+                  </div>
+                )}
                 {pieces.map((p, i) => (
                   <div key={`${p.platform}-${p.format}-${i}`} className="flex items-center gap-3 px-5 py-3">
                     <input
@@ -191,7 +198,7 @@ export function PlanWeekPage() {
                       {effortPoints(p.format) === 1 ? 'low' : effortPoints(p.format) === 2 ? 'med' : 'high'}
                     </span>
                     <input
-                      type="date"
+                      type="datetime-local"
                       value={p.dateKey}
                       disabled={!p.included}
                       onChange={(e) => setPieces((cur) => cur.map((x, j) => (j === i ? { ...x, dateKey: e.target.value } : x)))}
@@ -202,25 +209,29 @@ export function PlanWeekPage() {
               </div>
             </ICard>
 
-            {/* Live effort guardrail (D-53 §4) */}
-            <p className={`mt-3 text-center text-[13px] font-medium ${loadTone}`}>
-              {active.length} {active.length === 1 ? 'piece' : 'pieces'} · {totalPts} effort {totalPts === 1 ? 'point' : 'points'} · {load} load
-              {load === 'full' && <span className="font-normal"> — heavy; consider removing one.</span>}
-            </p>
+            {active.length > 0 ? (
+              <>
+                {/* Live effort guardrail (D-53 §4) — counts new pieces only; the hub already exists. */}
+                <p className={`mt-3 text-center text-[13px] font-medium ${loadTone}`}>
+                  {active.length} new {active.length === 1 ? 'piece' : 'pieces'} · {totalPts} effort {totalPts === 1 ? 'point' : 'points'} · {load} load
+                  {load === 'full' && <span className="font-normal"> — heavy; consider removing one.</span>}
+                </p>
 
-            <div className="mt-5 flex gap-3">
-              <BtnPrimary
-                className="flex-1 py-3"
-                disabled={active.length === 0 || create.isPending}
-                onClick={() => create.mutate(false)}
-              >
-                Create {active.length} {active.length === 1 ? 'piece' : 'pieces'}
-              </BtnPrimary>
-              <BtnSecondary className="px-6" disabled={active.length === 0 || create.isPending} onClick={() => create.mutate(true)}>
-                Save as drafts
-              </BtnSecondary>
-            </div>
-            {create.isError && <p className="mt-3 text-center text-[13px] text-dim">{create.error.message}</p>}
+                <div className="mt-5 flex gap-3">
+                  <BtnPrimary className="flex-1 py-3" disabled={create.isPending} onClick={() => create.mutate(false)}>
+                    Create {active.length} {active.length === 1 ? 'piece' : 'pieces'}
+                  </BtnPrimary>
+                  <BtnSecondary className="px-6" disabled={create.isPending} onClick={() => create.mutate(true)}>
+                    Save as drafts
+                  </BtnSecondary>
+                </div>
+                {create.isError && <p className="mt-3 text-center text-[13px] text-dim">{create.error.message}</p>}
+              </>
+            ) : (
+              <p className="mt-3 text-center text-[13px] text-dim">
+                No new pieces yet — add another platform, or bump the cadence to Medium or Heavy.
+              </p>
+            )}
           </>
         )}
       </main>

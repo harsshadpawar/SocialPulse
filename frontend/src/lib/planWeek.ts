@@ -49,10 +49,13 @@ export function loadFor(points: number): Load {
   return points <= 3 ? 'light' : points <= 6 ? 'moderate' : 'full';
 }
 
-// Cadence → proposed spread (gap days between pieces). Every date stays editable/clearable after.
+// Cadence → proposed spread (gap days between pieces). Every datetime stays editable/clearable after.
+export const DEFAULT_TIME = '09:00';
 const GAP: Record<Cadence, number> = { light: 3, medium: 2, heavy: 1 };
-export function proposeDateStr(index: number, cadence: Cadence, startKey: string): string {
-  const [y, m, d] = startKey.split('-').map(Number);
+// `start` is a datetime-local string 'YYYY-MM-DDTHH:mm'. Spread by gap days, carrying the time of day.
+export function proposeDateStr(index: number, cadence: Cadence, start: string): string {
+  const [datePart, timePart = DEFAULT_TIME] = start.split('T');
+  const [y, m, d] = datePart!.split('-').map(Number);
   const dt = new Date(Date.UTC(y!, m! - 1, d! + index * GAP[cadence], 12));
-  return dt.toISOString().slice(0, 10);
+  return `${dt.toISOString().slice(0, 10)}T${timePart}`;
 }

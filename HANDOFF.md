@@ -33,7 +33,7 @@ v0.1.0 → v0.2a → v0.2b → v0.2c → v0.2d → v0.2e → v0.2f → v0.2g →
 | v0.2f | Editable formats per platform (D-52) — format chosen per post (thread/carousel/video/long_video/image), Format dropdown enabled; effort derives per format (video = high) | yes (Format enum values) |
 | v0.2g | "Plan week from this idea" (D-53) — hub-and-spoke: platforms → cadence → fixed-ladder proposal → accept/remove → schedule or save-as-drafts; live effort guardrail; captions seed from coreMessage, no AI | none |
 | v0.2h | Calendar Month view + Week/Month toggle + ‹ › / Today navigation (D-54); effort/realism use a `weekRef`, status always vs real now | none |
-| v0.2i | Plan Week fixes (D-55) — empty-proposal guidance line, `Shell` hoisted to module scope (no remount/focus loss on date edit), singular/plural grammar; verified live incl. Save-as-drafts | none |
+| v0.2i | Plan Week fixes — `Shell` hoisted (no remount/focus loss), grammar (D-55); capture routes to Plan Week (D-56); hub context row so the proposal is never empty / counts new pieces only (D-57); **calendar cards show "Platform · Format" so pieces are identifiable — fixes the "adding wrongly / not inserting" report (insert verified: 1 click = 1 row) (D-58); Plan Week schedules date **and time** via datetime-local, default 09:00 (D-59)**; verified live | none |
 
 Decision records live in `docs/decisions-*.md` (D-30 … D-54, incl. `decisions-v0.2f-editable-formats.md`,
 `decisions-v0.2g-plan-week.md`, `decisions-v0.2h-calendar-nav.md`, `decisions-phase2-weekly-review.md`)
