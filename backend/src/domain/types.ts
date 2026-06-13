@@ -18,6 +18,16 @@ export type DraftSubState = 'needs_caption' | 'needs_schedule' | 'ready_to_mark'
 /** v0.2c (D-38): derived from format — never stored. */
 export type EffortScore = 'low' | 'medium' | 'high';
 
+/** v0.2d (D-43): the Goal Setup commitments — one inline-edited row, all NULL-able.
+ *  weeklyPublishTarget is the same column as the v0.2a posting target's weeklyTarget. */
+export interface Commitments {
+  weeklyPublishTarget: number | null;
+  prepareAheadTarget: number | null;
+  completionTargetPct: number | null;
+  missedCeiling: number | null;
+  weeklyCapacity: number | null;
+}
+
 /** Plain domain object — services map Prisma rows into this; Prisma types never cross this line. */
 export interface DomainPost {
   id: string;

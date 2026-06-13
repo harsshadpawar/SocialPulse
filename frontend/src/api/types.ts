@@ -85,3 +85,73 @@ export interface UpdatePostInput {
   actualDatetime?: string; // Posted only — server enforces
   nativePostUrl?: string | null; // Posted only — server enforces
 }
+
+/* ── v0.2d — Calendar + Goals (mirrors backend, ADR-3: client renders, never re-derives) ── */
+
+export type WeekState = 'empty' | 'healthy' | 'overload' | 'missed';
+export type GoalVerdict = 'on_rhythm' | 'ran_short' | 'none';
+
+export interface WeekRealism {
+  totalEffort: number;
+  capacity: number | null;
+  overCapacity: boolean;
+  heavyDayKey: string | null;
+  missedCount: number;
+  hasPosts: boolean;
+  state: WeekState;
+}
+
+export interface CalPostView {
+  id: string;
+  ideaTitle: string;
+  platform: Platform;
+  targetDatetime: string;
+  readiness: Readiness;
+  postingStatus: PostingStatus;
+  adherenceStatus: AdherenceStatus;
+  cardState: CardState;
+  effortScore: EffortScore;
+  missed: boolean;
+}
+
+export interface CalDay {
+  dayKey: string;
+  dow: string;
+  dayNum: number;
+  isToday: boolean;
+  posts: CalPostView[];
+}
+
+export interface CalendarView {
+  weekStartKey: string;
+  weekEndKey: string;
+  label: string;
+  days: CalDay[];
+  effort: { used: number; capacity: number | null };
+  realism: WeekRealism;
+}
+
+export interface Commitments {
+  weeklyPublishTarget: number | null;
+  prepareAheadTarget: number | null;
+  completionTargetPct: number | null;
+  missedCeiling: number | null;
+  weeklyCapacity: number | null;
+}
+
+export interface GoalMeter {
+  value: number;
+  total: number | null;
+}
+
+export interface GoalsView {
+  commitments: Commitments;
+  progress: {
+    published: GoalMeter;
+    preparedAhead: GoalMeter;
+    completion: GoalMeter;
+    missed: GoalMeter;
+    verdict: GoalVerdict;
+    hasCommitments: boolean;
+  };
+}

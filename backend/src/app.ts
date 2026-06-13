@@ -1,6 +1,8 @@
 import express from 'express';
 import type { Express } from 'express';
 import { errorHandler } from './middleware/error';
+import { calendarRouter } from './routes/calendar.routes';
+import { goalsRouter } from './routes/goals.routes';
 import { ideasRouter } from './routes/ideas.routes';
 import { postsRouter } from './routes/posts.routes';
 import { targetsRouter } from './routes/targets.routes';
@@ -18,6 +20,8 @@ export function createApp(): Express {
   app.use(ideasRouter);
   app.use(postsRouter);
   app.use(targetsRouter);
+  app.use(calendarRouter);
+  app.use(goalsRouter);
 
   app.use(errorHandler);
   return app;

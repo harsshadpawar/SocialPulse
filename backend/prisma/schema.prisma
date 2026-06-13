@@ -96,11 +96,18 @@ model AdherenceEvent {
 }
 
 // D-32/D-33: one-row table; targets are data, not settings. NULL = no target for that period.
+// v0.2d (D-43): extended into the "commitments" store — Goal Setup persists weekly publish target
+// (= weeklyTarget), prepare-ahead, completion %, missed ceiling, and weekly effort capacity. Still
+// one inline-edited row, no settings screen. All NULL-able: a commitment not set simply isn't judged.
 model PostingTarget {
-  id           Int      @id @default(1)
-  dailyTarget  Int?     @map("daily_target")
-  weeklyTarget Int?     @map("weekly_target")
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                  Int      @id @default(1)
+  dailyTarget         Int?     @map("daily_target")
+  weeklyTarget        Int?     @map("weekly_target")
+  prepareAheadTarget  Int?     @map("prepare_ahead_target")
+  completionTargetPct Int?     @map("completion_target_pct")
+  missedCeiling       Int?     @map("missed_ceiling")
+  weeklyCapacity      Int?     @map("weekly_capacity")
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("posting_target")
 }

@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { fetchToday } from '../api/client';
+import { NavHeader } from '../components/NavHeader';
 import { TargetsStrip } from '../components/TargetsStrip';
 import { TodayCard } from '../components/TodayCard';
-import { BtnPrimary, Command, Eyebrow, ICard, IHeader } from '../components/ui';
+import { BtnPrimary, Command, Eyebrow, ICard } from '../components/ui';
 import {
   EMPTY_CARD_BODY,
   EMPTY_CTA,
@@ -34,8 +35,9 @@ export function TodayPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-paper font-sans text-ink antialiased">
-      <IHeader
-        action={
+      <NavHeader
+        active="today"
+        right={
           <Link to="/ideas/new" className="text-[14px] font-medium text-dim hover:text-ink">
             + New idea
           </Link>

@@ -1,7 +1,7 @@
 // The product's voice. Core strings VERBATIM from the handoff README; platform substitution
 // per the hi-fi variants board: "Your {platform} {format-noun} is due now."
 // Server owns state selection; this file owns the words (ADR-3 refinement).
-import type { CardState, DraftSubState, EffortScore, Platform, ReadyMissing, WeeklyLoad } from '../api/types';
+import type { CardState, DraftSubState, EffortScore, GoalVerdict, Platform, ReadyMissing, WeeklyLoad, WeekState } from '../api/types';
 import type { Tone } from '../components/ui';
 import { PLATFORM_META } from './platform';
 
@@ -125,6 +125,92 @@ export const REPURPOSE_HEADING = 'Repurpose this idea';
 export const REPURPOSE_HELPER = 'Spin up a sibling post on another platform — starts from this copy.';
 export function repurposeToLabel(platformLabel: string): string {
   return `Repurpose to ${platformLabel}`;
+}
+
+/* ── v0.2d Calendar Week View (D-45) — calm, never red ── */
+
+export function calEyebrow(state: WeekState): [Tone, string] {
+  switch (state) {
+    case 'healthy':
+      return ['success', 'On track'];
+    case 'overload':
+      return ['accent', 'Heads up'];
+    case 'missed':
+      return ['missed', 'One slipped'];
+    case 'empty':
+      return ['dim', 'Clear'];
+  }
+}
+
+export function calCommand(state: WeekState): string {
+  switch (state) {
+    case 'healthy':
+      return 'This week is realistic.';
+    case 'overload':
+      return 'This week may be heavy.';
+    case 'missed':
+      return "One post slipped — it's recoverable.";
+    case 'empty':
+      return 'Nothing scheduled yet.';
+  }
+}
+
+export const CAL_EMPTY_BODY = 'Nothing planned this week. Add a post when you have energy — the week fills in as you go.';
+
+export const REALISM_LABEL = 'Plan realism';
+export const REALISM_HEADING = 'This week may be heavy.';
+export function realismBody(heavyDayName: string | null, totalEffort: number, capacity: number | null): string {
+  const parts: string[] = [];
+  if (heavyDayName) parts.push(`${heavyDayName} has two high-effort posts`);
+  if (capacity !== null && totalEffort > capacity) parts.push(`the week totals ${totalEffort} effort points against your capacity of ${capacity}`);
+  if (parts.length === 0) return 'This week may be heavy. Consider reducing one high-effort post.';
+  const joined = parts.join(', and ');
+  return joined.charAt(0).toUpperCase() + joined.slice(1) + '.';
+}
+export function realismFix(heavyDayName: string | null): string {
+  const what = heavyDayName ? `one ${heavyDayName} post` : 'one high-effort post';
+  return `Suggested fix — move ${what} to next week, or drop it. You don't need to do more; just less, done well.`;
+}
+export const REALISM_ADJUST = 'Open the plan';
+export const REALISM_KEEP = 'Keep as is';
+
+export const CAL_MISSED_LABEL = 'Recoverable';
+export function calMissedHeading(dayName: string | null): string {
+  return dayName ? `${dayName}'s post didn't go live.` : "A post didn't go live this week.";
+}
+export const CAL_MISSED_BODY = "It's still recoverable. If you published it later, mark it posted — it just counts as Late.";
+export const CAL_MISSED_RESOLVE = 'Resolve it';
+
+/* ── v0.2d Goals (D-43/D-47) — controllable commitments, non-punitive ── */
+
+export const GOALS_SETUP_EYEBROW = 'Commitments · not growth';
+export const GOALS_SETUP_COMMAND = "Set this week's commitments.";
+export const GOALS_SETUP_SUB = 'Targets you control — rhythm, not reach. Pick a couple you can actually keep.';
+export const GOALS_SAVE = 'Save commitments';
+export const GOALS_BANNED_LABEL = 'Only controllable behavior — these never appear';
+export const GOALS_BANNED = ['Gain 100 followers', 'Reach 10k impressions', 'Get 500 likes'];
+
+export const GOALS_EMPTY_EYEBROW = 'Commitments';
+export const GOALS_EMPTY_COMMAND = 'No commitments yet.';
+export const GOALS_EMPTY_BODY = "Set a couple of targets you can actually keep. Change them any week — they're commitments, not contracts.";
+export const GOALS_EMPTY_CTA = 'Set commitments';
+export const GOALS_EDIT = 'Edit commitments';
+
+export const GOALS_PROGRESS_TITLE = "This week's commitments";
+export function goalVerdictPill(v: GoalVerdict): [Tone, string] | null {
+  if (v === 'on_rhythm') return ['success', 'On rhythm'];
+  if (v === 'ran_short') return ['late', 'Ran short'];
+  return null;
+}
+export function goalVerdictLine(v: GoalVerdict, publishTarget: number | null): string {
+  if (v === 'ran_short') {
+    if (publishTarget !== null && publishTarget > 2) {
+      const fewer = publishTarget - 2;
+      return `This week ran short of your plan. Next week, try planning ${fewer} instead of ${publishTarget} — ${fewer} realistic beats ${publishTarget} missed.`;
+    }
+    return 'This week ran short of your plan. Next week, try planning fewer — fewer realistic beats more missed.';
+  }
+  return "This plan is realistic. You're on rhythm.";
 }
 
 /* ── CTAs (frozen CTA table) ── */

@@ -1,4 +1,14 @@
-import type { MarkReadyResponse, Platform, PostView, TargetView, TodayView, UpdatePostInput } from './types';
+import type {
+  CalendarView,
+  Commitments,
+  GoalsView,
+  MarkReadyResponse,
+  Platform,
+  PostView,
+  TargetView,
+  TodayView,
+  UpdatePostInput,
+} from './types';
 
 export class ApiError extends Error {
   constructor(
@@ -65,6 +75,18 @@ export function repurpose(id: string, platform: Platform): Promise<PostView> {
     method: 'POST',
     body: JSON.stringify({ platform }),
   }).then((r) => r.post);
+}
+
+export function fetchCalendar(): Promise<CalendarView> {
+  return request<CalendarView>('/api/calendar');
+}
+
+export function fetchGoals(): Promise<GoalsView> {
+  return request<GoalsView>('/api/goals');
+}
+
+export function saveCommitments(input: Commitments): Promise<GoalsView> {
+  return request<GoalsView>('/api/goals', { method: 'PUT', body: JSON.stringify(input) });
 }
 
 export function markPosted(
