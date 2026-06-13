@@ -7,6 +7,7 @@ import { ideasRouter } from './routes/ideas.routes';
 import { postsRouter } from './routes/posts.routes';
 import { targetsRouter } from './routes/targets.routes';
 import { todayRouter } from './routes/today.routes';
+import { weeklyReviewRouter } from './routes/weeklyReview.routes';
 
 export function createApp(): Express {
   const app = express();
@@ -22,6 +23,7 @@ export function createApp(): Express {
   app.use(targetsRouter);
   app.use(calendarRouter);
   app.use(goalsRouter);
+  app.use(weeklyReviewRouter);
 
   app.use(errorHandler);
   return app;

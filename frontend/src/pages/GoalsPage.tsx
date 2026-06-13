@@ -2,6 +2,7 @@
 // reading the shared metrics (ADR-3). Non-punitive everywhere (D-47).
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { fetchGoals, saveCommitments } from '../api/client';
 import type { Commitments, GoalVerdict } from '../api/types';
 import { NavHeader } from '../components/NavHeader';
@@ -19,6 +20,7 @@ import {
   GOALS_SETUP_COMMAND,
   GOALS_SETUP_EYEBROW,
   GOALS_SETUP_SUB,
+  REVIEW_THIS_WEEK,
   goalVerdictLine,
   goalVerdictPill,
 } from '../lib/microcopy';
@@ -304,6 +306,12 @@ export function GoalsPage() {
             </p>
           </div>
         </ICard>
+        {/* Phase 2 (D-50): contextual Weekly Review entry from Goals. */}
+        <div className="mt-5 text-center">
+          <Link to="/review" className="text-[13px] font-medium text-accent hover:underline">
+            {REVIEW_THIS_WEEK} →
+          </Link>
+        </div>
       </main>
     </Shell>
   );

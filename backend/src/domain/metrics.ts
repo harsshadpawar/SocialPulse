@@ -10,6 +10,9 @@ export interface WeeklyMetrics {
   planned: number;
   /** Posted this week (early/on-time/late all count as published). */
   published: number;
+  /** Of the published: on-time (incl. early) and late — exposed so Weekly Review reads, never recomputes. */
+  onTime: number;
+  late: number;
   /** Ready ahead of time, not yet posted, not missed. */
   preparedAhead: number;
   /** Targets this week that lapsed unposted. */
@@ -47,6 +50,8 @@ export function deriveWeeklyMetrics(posts: readonly DomainPost[], now: Date, tz:
   return {
     planned,
     published,
+    onTime,
+    late,
     preparedAhead,
     missed,
     completionPct: pct(published, planned),

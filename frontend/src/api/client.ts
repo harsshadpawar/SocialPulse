@@ -5,9 +5,11 @@ import type {
   MarkReadyResponse,
   Platform,
   PostView,
+  Reflection,
   TargetView,
   TodayView,
   UpdatePostInput,
+  WeeklyReviewView,
 } from './types';
 
 export class ApiError extends Error {
@@ -87,6 +89,14 @@ export function fetchGoals(): Promise<GoalsView> {
 
 export function saveCommitments(input: Commitments): Promise<GoalsView> {
   return request<GoalsView>('/api/goals', { method: 'PUT', body: JSON.stringify(input) });
+}
+
+export function fetchWeeklyReview(): Promise<WeeklyReviewView> {
+  return request<WeeklyReviewView>('/api/weekly-review');
+}
+
+export function saveReflection(input: Reflection): Promise<WeeklyReviewView> {
+  return request<WeeklyReviewView>('/api/weekly-review/reflection', { method: 'PUT', body: JSON.stringify(input) });
 }
 
 export function markPosted(

@@ -8,6 +8,7 @@ import { BtnPrimary, Command, Eyebrow, ICard } from '../components/ui';
 import {
   EMPTY_CARD_BODY,
   EMPTY_CTA,
+  REVIEW_THIS_WEEK,
   WORK_DONE_COMMAND,
   WORK_DONE_EYEBROW,
   commandFor,
@@ -94,6 +95,14 @@ export function TodayPage() {
             {data.weeklyEffort.posts > 0 && (
               <p className="mt-2 text-center text-[12.5px] text-dim">
                 {weeklyEffortLine(data.weeklyEffort.posts, data.weeklyEffort.load)}
+              </p>
+            )}
+            {/* Phase 2 (D-50): contextual Weekly Review entry — only when there's a week to review. */}
+            {data.weeklyEffort.posts > 0 && (
+              <p className="mt-3 text-center">
+                <Link to="/review" className="text-[12.5px] font-medium text-accent hover:underline">
+                  {REVIEW_THIS_WEEK} →
+                </Link>
               </p>
             )}
           </>

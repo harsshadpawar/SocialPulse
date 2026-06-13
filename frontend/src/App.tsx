@@ -4,6 +4,7 @@ import { EditorPage } from './pages/EditorPage';
 import { GoalsPage } from './pages/GoalsPage';
 import { NewIdeaPage } from './pages/NewIdeaPage';
 import { TodayPage } from './pages/TodayPage';
+import { WeeklyReviewPage } from './pages/WeeklyReviewPage';
 
 // v0.1 execution graph: Today ⇄ Editor, Today → New Idea → Editor.
 // v0.2d planning graph (D-46): Today · Calendar · Goals via the NavHeader switch.
@@ -16,6 +17,7 @@ export function App() {
       <Route path="/posts/:id" element={<EditorPage />} />
       <Route path="/calendar" element={<CalendarPage />} />
       <Route path="/goals" element={<GoalsPage />} />
+      <Route path="/review" element={<WeeklyReviewPage />} />
     </Routes>
   );
 }

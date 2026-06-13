@@ -155,3 +155,30 @@ export interface GoalsView {
     hasCommitments: boolean;
   };
 }
+
+/* ── Phase 2 — Weekly Review ── */
+
+export interface WeeklyMetrics {
+  planned: number;
+  published: number;
+  onTime: number;
+  late: number;
+  preparedAhead: number;
+  missed: number;
+  completionPct: number;
+  onTimePct: number;
+  executionScore: number;
+}
+
+export interface Reflection {
+  blockers: string;
+  repeat: string;
+  stop: string;
+}
+
+export interface WeeklyReviewView {
+  weekStartKey: string;
+  label: string;
+  metrics: WeeklyMetrics;
+  reflection: Reflection;
+}

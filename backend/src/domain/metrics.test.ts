@@ -26,6 +26,8 @@ describe('deriveWeeklyMetrics (v0.2d D-44)', () => {
     const m = deriveWeeklyMetrics([postedOnTime(), postedLate(), missedPost(), readyAhead(), draftFuture()], NOW, TZ);
     expect(m.planned).toBe(5);
     expect(m.published).toBe(2);
+    expect(m.onTime).toBe(1);
+    expect(m.late).toBe(1);
     expect(m.missed).toBe(1);
     expect(m.preparedAhead).toBe(1);
     expect(m.completionPct).toBe(40); // 2 / 5

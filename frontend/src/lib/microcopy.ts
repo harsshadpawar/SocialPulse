@@ -202,6 +202,28 @@ export function goalVerdictPill(v: GoalVerdict): [Tone, string] | null {
   if (v === 'ran_short') return ['late', 'Ran short'];
   return null;
 }
+export const REVIEW_THIS_WEEK = 'Review this week';
+
+/* ── Phase 2 — Weekly Review (calm, input-focused, never a performance dashboard) ── */
+
+export const WR_EYEBROW = 'Weekly review';
+export const WR_COMMAND = 'This week in review.';
+export const WR_SUB = 'What you planned, what shipped, and what to carry into next week — inputs you control, not performance.';
+export function wrHeadline(planned: number, published: number): string {
+  if (planned === 0) return 'Nothing was scheduled this week — a quiet week is still a choice.';
+  return `You planned ${planned}, and ${published} went live.`;
+}
+export const WR_REFLECT_LABEL = 'Reflect — your notes for next week';
+export const WR_BLOCKERS_LABEL = 'What got stuck?';
+export const WR_BLOCKERS_PH = 'What blocked execution — energy, time, a tricky edit…';
+export const WR_REPEAT_LABEL = 'What should repeat?';
+export const WR_REPEAT_PH = 'What worked — keep doing it next week.';
+export const WR_STOP_LABEL = 'What should stop?';
+export const WR_STOP_PH = "What didn't serve you — drop it.";
+export const WR_SAVE = 'Save reflection';
+export const WR_SAVED = 'Saved ✓';
+export const WR_PLAN_NEXT = 'Plan next week →';
+
 export function goalVerdictLine(v: GoalVerdict, publishTarget: number | null): string {
   if (v === 'ran_short') {
     if (publishTarget !== null && publishTarget > 2) {

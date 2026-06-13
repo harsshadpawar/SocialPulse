@@ -95,6 +95,19 @@ model AdherenceEvent {
   @@map("adherence_event")
 }
 
+// Phase 2 (D-48): Weekly Review reflection — user-authored learning artifacts (blockers/repeat/stop),
+// keyed by the Dubai ISO week. NOT derived status (so it's stored, unlike day_closure): the creator's
+// words are the point of the review. One row per week; current week only in v0.2e.
+model WeeklyReview {
+  weekStartKey String   @id @map("week_start_key") // 'YYYY-MM-DD' Monday, Dubai
+  blockers     String   @default("")
+  repeat       String   @default("")
+  stop         String   @default("")
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("weekly_review")
+}
+
 // D-32/D-33: one-row table; targets are data, not settings. NULL = no target for that period.
 // v0.2d (D-43): extended into the "commitments" store — Goal Setup persists weekly publish target
 // (= weeklyTarget), prepare-ahead, completion %, missed ceiling, and weekly effort capacity. Still
