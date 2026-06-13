@@ -18,6 +18,6 @@
     "deploy:local": "npm run build && npm run serve"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^10.0.3"
   }
 }
