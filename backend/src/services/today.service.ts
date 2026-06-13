@@ -2,7 +2,7 @@
 // shape the DTO. Prisma types never leave this layer (decision #28).
 import { deriveAdherence } from '../domain/adherence';
 import { deriveCapabilities } from '../domain/capabilities';
-import { deriveCardState, selectTodayPost } from '../domain/selector';
+import { deriveCardState, deriveWorkIsDone, selectTodayPost } from '../domain/selector';
 import { derivePostingStatus } from '../domain/postingStatus';
 import { deriveDraftSubState, deriveDueNotReady } from '../domain/subState';
 import { isSameDay, isSameWeek } from '../domain/time';
@@ -44,6 +44,8 @@ export interface TodayView {
   postedInWeekCount: number;
   /** D-33: NULL = no target set for that period. */
   target: { dailyTarget: number | null; weeklyTarget: number | null };
+  /** v0.2b (D-34): derived "Today's work is done" — nothing actionable left + posted today. */
+  workIsDone: boolean;
 }
 
 /** Prisma row (with idea) → plain domain object. The only place this mapping exists. */
@@ -124,6 +126,7 @@ export async function getTodayView(now: Date, tz: string): Promise<TodayView> {
     postedOnDayCount,
     postedInWeekCount,
     target: { dailyTarget: targetRow?.dailyTarget ?? null, weeklyTarget: targetRow?.weeklyTarget ?? null },
+    workIsDone: deriveWorkIsDone(posts, now, tz),
   };
 
   const selected = selectTodayPost(posts, now, tz);

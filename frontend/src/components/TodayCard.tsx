@@ -2,7 +2,7 @@
 // Renders server-derived state only; no status logic lives here (ADR-3).
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { keepAsMissed } from '../api/client';
+import { keepAsMissed, quickStart } from '../api/client';
 import type { PostView } from '../api/types';
 import { formatDateParts, formatWhen } from '../lib/format';
 
@@ -22,6 +22,8 @@ import {
   DUE_NOT_READY_CARD,
   MISSED_MESSAGE,
   PRIMARY_CTA,
+  QUICK_START,
+  QUICK_START_HELPER,
   RESOLVE_KEEP_MISSED,
   RESOLVE_LABEL,
   RESOLVE_MARK_POSTED,
@@ -43,6 +45,14 @@ export function TodayCard({ post }: { post: PostView }) {
   const keepMissed = useMutation({
     mutationFn: () => keepAsMissed(post.id),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['today'] }),
+  });
+
+  const quickStartMut = useMutation({
+    mutationFn: () => quickStart(post.id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['today'] });
+      void queryClient.invalidateQueries({ queryKey: ['post', post.id] });
+    },
   });
 
   function copyCaption() {
@@ -160,7 +170,19 @@ export function TodayCard({ post }: { post: PostView }) {
               <BtnSecondary disabled={!canCopy} className="w-full" onClick={copyCaption}>
                 {copied ? 'Copied ✓' : 'Copy Caption'}
               </BtnSecondary>
-              {!canCopy && <p className="mt-1.5 text-center text-[12.5px] text-dim">{COPY_CAPTION_DISABLED_HELPER}</p>}
+              {post.capabilities.canQuickStart ? (
+                <button
+                  type="button"
+                  className="mt-1.5 text-center text-[12.5px] font-medium text-accent hover:underline disabled:opacity-50"
+                  disabled={quickStartMut.isPending}
+                  onClick={() => quickStartMut.mutate()}
+                  title={QUICK_START_HELPER}
+                >
+                  {QUICK_START}
+                </button>
+              ) : (
+                !canCopy && <p className="mt-1.5 text-center text-[12.5px] text-dim">{COPY_CAPTION_DISABLED_HELPER}</p>
+              )}
             </div>
             <BtnSecondary className="flex-1" href={meta.url}>
               {meta.openLabel}

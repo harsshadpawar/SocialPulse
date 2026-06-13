@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { parseOr400 } from '../middleware/validate';
-import { acknowledgeMissed, getPostView, markPosted, markReady, updatePost } from '../services/posts.service';
+import { acknowledgeMissed, getPostView, markPosted, markReady, quickStart, updatePost } from '../services/posts.service';
 
 const IdParamSchema = z.object({ id: z.string().uuid('Not a valid post id.') });
 
@@ -64,6 +64,15 @@ postsRouter.post('/api/posts/:id/posted', (req, res, next) => {
     }))
     .then(({ params, body }) => markPosted(params.id, body, now))
     .then(({ post }) => res.json({ post }))
+    .catch(next);
+});
+
+postsRouter.post('/api/posts/:id/quick-start', (req, res, next) => {
+  const now = new Date();
+  Promise.resolve()
+    .then(() => parseOr400(IdParamSchema, req.params))
+    .then(({ id }) => quickStart(id, now))
+    .then((post) => res.json({ post }))
     .catch(next);
 });
 

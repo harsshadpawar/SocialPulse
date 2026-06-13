@@ -86,6 +86,20 @@ export const COPY_CAPTION_DISABLED_HELPER = 'Add caption first';
 
 export const EMPTY_CARD_BODY = 'Nothing is due. When you plan a post, it appears here as the one thing to do.';
 
+/* ── v0.2b "Daily rhythm" — derived "Today's work is done" (D-34) ── */
+
+export const WORK_DONE_EYEBROW = 'Day done';
+export const WORK_DONE_COMMAND = "Today's work is done. Rest — tomorrow's plan is here when you are.";
+/** Recap sub-line; counts are passed in so the words stay here (ADR-3). */
+export function workDoneSub(postedOnDay: number, postedInWeek: number): string {
+  return `${postedOnDay} posted today · ${postedInWeek} this week.`;
+}
+
+/* ── v0.2b Quick Start (D-35) — seed the caption from the core message ── */
+
+export const QUICK_START = 'Quick Start';
+export const QUICK_START_HELPER = 'Start from your core message — refine after.';
+
 /* ── CTAs (frozen CTA table) ── */
 
 export const PRIMARY_CTA: Record<CardState, string> = {

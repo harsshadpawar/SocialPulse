@@ -41,4 +41,6 @@ export interface Capabilities {
   canAcknowledgeMissed: boolean;
   canEditActual: boolean;
   canSetUrl: boolean;
+  /** v0.2b (D-35): seed the caption from the idea's core message — blank-caption drafts only. */
+  canQuickStart: boolean;
 }

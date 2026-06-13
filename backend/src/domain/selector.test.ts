@@ -177,6 +177,7 @@ describe('capabilities (spot checks vs spec §4)', () => {
       canAcknowledgeMissed: false,
       canEditActual: true,
       canSetUrl: true,
+      canQuickStart: false,
     });
   });
 });

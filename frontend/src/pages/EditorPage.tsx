@@ -4,7 +4,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { fetchPost, markReady, updatePost } from '../api/client';
+import { fetchPost, markReady, quickStart, updatePost } from '../api/client';
 import type { Format, Platform, PostView, ReadyMissing } from '../api/types';
 import { MarkPostedSheet } from '../components/MarkPostedSheet';
 import { ResultCard } from '../components/ResultCard';
@@ -15,6 +15,8 @@ import {
   MARK_READY,
   MISSED_MESSAGE,
   PUBLISH_LOCKED,
+  QUICK_START,
+  QUICK_START_HELPER,
   READY_CONFIRM,
   READY_GUIDANCE,
   SAVE_DRAFT,
@@ -118,6 +120,11 @@ export function EditorPage() {
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 1500);
     },
+  });
+
+  const quickStartMut = useMutation({
+    mutationFn: () => quickStart(id!),
+    onSuccess: (updated) => refresh(updated),
   });
 
   const ready = useMutation({
@@ -233,7 +240,20 @@ export function EditorPage() {
                   onChange={setCaption}
                   right={<span className="text-[12px] text-dim">{caption.length} characters</span>}
                 />
-                <div className="flex justify-end">
+                <div className="flex items-center justify-between">
+                  {post.capabilities.canQuickStart && caption.trim() === '' ? (
+                    <button
+                      type="button"
+                      className="text-[13.5px] font-medium text-accent hover:underline disabled:opacity-50"
+                      disabled={quickStartMut.isPending}
+                      onClick={() => quickStartMut.mutate()}
+                      title={QUICK_START_HELPER}
+                    >
+                      {QUICK_START}
+                    </button>
+                  ) : (
+                    <span />
+                  )}
                   <BtnSecondary className="px-6" disabled={save.isPending || !post.capabilities.canEditPrepare} onClick={flushPrepare}>
                     {savedFlash ? 'Saved ✓' : isReady ? 'Save changes' : SAVE_DRAFT}
                   </BtnSecondary>

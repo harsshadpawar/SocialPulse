@@ -17,6 +17,7 @@ export interface Capabilities {
   canAcknowledgeMissed: boolean;
   canEditActual: boolean;
   canSetUrl: boolean;
+  canQuickStart: boolean;
 }
 
 export interface PostView {
@@ -47,6 +48,8 @@ export interface TodayView {
   postedOnDayCount: number;
   postedInWeekCount: number;
   target: TargetView;
+  /** v0.2b (D-34): derived "Today's work is done" — nothing actionable left + posted today. */
+  workIsDone: boolean;
 }
 
 export interface TargetView {

@@ -15,5 +15,7 @@ export function deriveCapabilities(post: DomainPost, now: Date): Capabilities {
     canAcknowledgeMissed: !posted && status === 'missed' && post.missedAcknowledgedAt === null,
     canEditActual: posted,
     canSetUrl: posted, // URL field must not exist before Posted (decision #18)
+    // v0.2b (D-35) Quick Start: only a blank-caption draft with a real core message to seed from.
+    canQuickStart: !posted && post.readiness === 'draft' && post.caption.trim() === '' && post.coreMessage.trim() !== '',
   };
 }

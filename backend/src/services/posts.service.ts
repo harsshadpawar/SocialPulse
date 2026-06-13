@@ -120,6 +120,23 @@ export async function updatePost(id: string, input: UpdatePostInput, now: Date):
   return toView(toDomain(updated), now);
 }
 
+/** Quick Start (v0.2b, D-35): seed the caption from the idea's core message so a blank draft can
+ *  move. Never schedules, marks ready, or posts — those stay the creator's attestations. No event
+ *  logged (caption edits aren't in ADR-5; logging would need a schema change we're deferring). */
+export async function quickStart(id: string, now: Date): Promise<PostView> {
+  const post = await loadDomainPost(id);
+  const caps = deriveCapabilities(post, now);
+  if (!caps.canQuickStart) {
+    throw new AppError(409, 'cannot_quick_start', 'Quick Start needs a blank caption and a saved core message.');
+  }
+  const updated = await prisma.platformPost.update({
+    where: { id },
+    data: { caption: post.coreMessage.trim() },
+    include: { idea: true },
+  });
+  return toView(toDomain(updated), now);
+}
+
 export interface MarkPostedInput {
   actualDatetime?: string; // ISO; defaults to now (the sheet prefill is editable)
   nativePostUrl?: string; // optional — "Skip link for now" is a first-class path

@@ -4,7 +4,16 @@ import { fetchToday } from '../api/client';
 import { TargetsStrip } from '../components/TargetsStrip';
 import { TodayCard } from '../components/TodayCard';
 import { BtnPrimary, Command, Eyebrow, ICard, IHeader } from '../components/ui';
-import { EMPTY_CARD_BODY, EMPTY_CTA, commandFor, commandSub, eyebrowFor } from '../lib/microcopy';
+import {
+  EMPTY_CARD_BODY,
+  EMPTY_CTA,
+  WORK_DONE_COMMAND,
+  WORK_DONE_EYEBROW,
+  commandFor,
+  commandSub,
+  eyebrowFor,
+  workDoneSub,
+} from '../lib/microcopy';
 
 /**
  * The command surface. Refetch on window focus + 30s interval IS the v0.1 reminder
@@ -37,15 +46,24 @@ export function TodayPage() {
 
         {data && (
           <>
-            {(() => {
-              const [tone, label] = eyebrowFor(data.state, data.post?.adherenceStatus, data.post?.dueNotReady);
-              return (
-                <Eyebrow tone={tone} pulse={data.state === 'due' || data.post?.dueNotReady === true}>
-                  {label}
-                </Eyebrow>
-              );
-            })()}
-            <Command sub={commandSub(data.state, ctx)}>{commandFor(data.state, ctx)}</Command>
+            {data.workIsDone ? (
+              <>
+                <Eyebrow tone="success">{WORK_DONE_EYEBROW}</Eyebrow>
+                <Command sub={workDoneSub(data.postedOnDayCount, data.postedInWeekCount)}>{WORK_DONE_COMMAND}</Command>
+              </>
+            ) : (
+              <>
+                {(() => {
+                  const [tone, label] = eyebrowFor(data.state, data.post?.adherenceStatus, data.post?.dueNotReady);
+                  return (
+                    <Eyebrow tone={tone} pulse={data.state === 'due' || data.post?.dueNotReady === true}>
+                      {label}
+                    </Eyebrow>
+                  );
+                })()}
+                <Command sub={commandSub(data.state, ctx)}>{commandFor(data.state, ctx)}</Command>
+              </>
+            )}
 
             {data.post ? (
               <TodayCard post={data.post} />

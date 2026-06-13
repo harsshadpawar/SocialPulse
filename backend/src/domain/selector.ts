@@ -72,6 +72,23 @@ export function selectTodayPost(posts: readonly DomainPost[], now: Date, tz: str
   return best?.candidate.post ?? null;
 }
 
+/** v0.2b (D-34): a post still needs action *today* — selector classes 1–4 (due, unacknowledged
+ *  missed, ready+planned-today, loose draft). Class 5 (posted-today) and out-of-scope posts are NOT
+ *  actionable. Pure; shares classOf with the selector so the two can never drift. */
+export function isActionableToday(post: DomainPost, now: Date, tz: string): boolean {
+  const cls = classOf({ post, status: derivePostingStatus(post, now) }, now, tz);
+  return cls !== null && cls <= 4;
+}
+
+/** v0.2b (D-34): "Today's work is done" — fully DERIVED, no persistence (day_closure deferred until
+ *  30–50 real cycles). True when nothing remains actionable today AND at least one post went live
+ *  on today's Dubai day. A clear day with nothing posted stays `empty`, not done. */
+export function deriveWorkIsDone(posts: readonly DomainPost[], now: Date, tz: string): boolean {
+  const nothingActionable = !posts.some((p) => isActionableToday(p, now, tz));
+  const postedToday = posts.some((p) => p.actualDatetime !== null && isSameDay(p.actualDatetime, now, tz));
+  return nothingActionable && postedToday;
+}
+
 /** Card state key — drives command line, chips, CTA, microcopy (selector-spec §1). */
 export function deriveCardState(post: DomainPost, now: Date): CardState {
   const status = derivePostingStatus(post, now);
