@@ -8,7 +8,7 @@ import type { WeekRealism } from '../domain/planning';
 import { derivePostingStatus } from '../domain/postingStatus';
 import { deriveCardState } from '../domain/selector';
 import { dayKey, weekStartKey } from '../domain/time';
-import type { AdherenceStatus, CardState, DomainPost, EffortScore, Platform, PostingStatus, Readiness } from '../domain/types';
+import type { AdherenceStatus, CardState, DomainPost, EffortScore, Format, Platform, PostingStatus, Readiness } from '../domain/types';
 import { prisma } from '../db/client';
 import { getCommitments } from './commitments.service';
 import { toDomain } from './today.service';
@@ -17,6 +17,7 @@ export interface CalPostView {
   id: string;
   ideaTitle: string;
   platform: Platform;
+  format: Format;
   targetDatetime: string; // ISO — calendar items are always scheduled
   readiness: Readiness;
   postingStatus: PostingStatus;
@@ -53,6 +54,7 @@ export interface CompactPost {
   id: string;
   ideaTitle: string;
   platform: Platform;
+  format: Format;
   postingStatus: PostingStatus;
   cardState: CardState;
   missed: boolean;
@@ -95,6 +97,7 @@ function calPost(p: DomainPost, now: Date): CalPostView {
     id: p.id,
     ideaTitle: p.ideaTitle,
     platform: p.platform,
+    format: p.format,
     targetDatetime: p.targetDatetime!.toISOString(),
     readiness: p.readiness,
     postingStatus: status,
@@ -156,6 +159,7 @@ function compactPost(p: DomainPost, now: Date): CompactPost {
     id: p.id,
     ideaTitle: p.ideaTitle,
     platform: p.platform,
+    format: p.format,
     postingStatus: status,
     cardState: deriveCardState(p, now),
     missed: status === 'missed',

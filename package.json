@@ -11,7 +11,11 @@
     "seed": "npm --prefix backend run seed",
     "smoke": "npm --prefix backend run smoke",
     "dev": "npm run db:up && npm run migrate && concurrently -n api,web -c blue,green \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
-    "test": "npm --prefix backend test"
+    "test": "npm --prefix backend test",
+    "migrate:deploy": "npm --prefix backend run migrate:deploy",
+    "build": "npm --prefix frontend run build && npm --prefix backend run build",
+    "serve": "npm run db:up && npm run migrate:deploy && NODE_ENV=production npm --prefix backend run start",
+    "deploy:local": "npm run build && npm run serve"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

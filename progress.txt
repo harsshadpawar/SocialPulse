@@ -1,0 +1,16 @@
+[ENGINEER]
+Noted and saved. The summary for the road:
+Done (all committed, app green):
+
+v0.1 — closed and tagged v0.1.0: the full execution loop (idea → Ready → Due → manual post → Mark Posted → derived adherence), all six Today states, staged editor, Missed path, hi-fi "Instrument" design on Tailwind v4 — validated §15.1 with a real LinkedIn post tonight.
+v0.1.1 patches: date-aware displays (stacked date/time in Target & Posted cells).
+v0.2a — "Deepen the loop", all three slices built (c0f7fde, 7ed7917, f09513e): derived readiness sub-states with sharper commands · due-but-not-ready prompt · adherence_event audit trail (ADR-5, recording silently since tonight) · daily/weekly posting targets with the inline strip · "+ New idea" header entry. 59 backend tests green. Decisions D-30–D-33 in docs/decisions-v0.2a.md.
+
+Pending (in order):
+
+2 minutes, tomorrow first thing: your browser check of the targets strip (set → see counts → clear) — then I tag v0.2a.
+v0.2b "Daily rhythm" — end-of-day closure ritual + Simplify action; opens with architect framing (closure semantics + Simplify conversion rules + microcopy for your approval).
+v0.2c width (multi-platform repurpose, effort scores, media), v0.2d new surfaces (calendar, Goals — needs your designer).
+Then PRD Phase 2 (Weekly Review — the event table is already feeding it) and Phases 3–7.
+
+Ctrl-C the dev terminal, npm run db:down if you like. Good night, Harsshad — strong day: v0.1 shipped, validated with a real post, and the loop already got smarter.

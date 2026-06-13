@@ -254,8 +254,8 @@ export const EMPTY_CTA = 'Create idea';
 
 export const NEW_IDEA_EYEBROW = 'Capture';
 export const NEW_IDEA_HEADING = "What's the idea?";
-export const NEW_IDEA_SUB = "Title and core message — that's all. The post itself comes next.";
-export const NEW_IDEA_CTA = 'Next → create the LinkedIn post';
+export const NEW_IDEA_SUB = "Title and core message — that's all. Planning the week comes next.";
+export const NEW_IDEA_CTA = 'Next → plan the week';
 
 /* ── Post Editor (staged workflow) ── */
 
