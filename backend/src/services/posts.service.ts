@@ -162,6 +162,46 @@ export async function repurpose(id: string, platform: Platform, now: Date): Prom
   return toView(toDomain(created), now, repurposeTargetsFor([...used, platform]));
 }
 
+/** Plan Week (v0.2g, D-53): bulk-create the chosen hub-and-spoke pieces under the source's idea.
+ *  Captions seed from the source caption (else core message) — SocialPulse never generates copy.
+ *  Per-piece target is optional: omit it to create the piece as a draft (commit content, not a date).
+ *  Allows multiple posts per platform per idea (hub-and-spoke needs several formats per platform). */
+export interface WeekPiece {
+  platform: Platform;
+  format: Format;
+  targetDatetime?: string | null;
+}
+
+export async function planWeek(sourceId: string, pieces: WeekPiece[], now: Date): Promise<{ created: number }> {
+  const source = await prisma.platformPost.findUnique({ where: { id: sourceId }, include: { idea: true } });
+  if (!source) throw new AppError(404, 'post_not_found', 'This post does not exist.');
+  for (const p of pieces) {
+    if (!isValidPair(p.platform, p.format)) {
+      throw new AppError(400, 'invalid_pair', `${p.format} is not a valid format for ${p.platform}.`);
+    }
+  }
+  const seededCaption = source.caption.trim() !== '' ? source.caption : source.idea.coreMessage;
+
+  await prisma.$transaction(async (tx) => {
+    for (const p of pieces) {
+      const row = await tx.platformPost.create({
+        data: {
+          contentIdeaId: source.contentIdeaId,
+          platform: p.platform,
+          format: p.format,
+          caption: seededCaption,
+          ...(p.targetDatetime ? { targetDatetime: new Date(p.targetDatetime) } : {}),
+        },
+      });
+      await tx.adherenceEvent.create({
+        data: { platformPostId: row.id, eventType: 'created', at: now, newValue: `${p.platform}/${p.format}` },
+      });
+    }
+  });
+
+  return { created: pieces.length };
+}
+
 /** Quick Start (v0.2b, D-35): seed the caption from the idea's core message so a blank draft can
  *  move. Never schedules, marks ready, or posts — those stay the creator's attestations. No event
  *  logged (caption edits aren't in ADR-5; logging would need a schema change we're deferring). */

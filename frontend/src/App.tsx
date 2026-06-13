@@ -3,6 +3,7 @@ import { CalendarPage } from './pages/CalendarPage';
 import { EditorPage } from './pages/EditorPage';
 import { GoalsPage } from './pages/GoalsPage';
 import { NewIdeaPage } from './pages/NewIdeaPage';
+import { PlanWeekPage } from './pages/PlanWeekPage';
 import { TodayPage } from './pages/TodayPage';
 import { WeeklyReviewPage } from './pages/WeeklyReviewPage';
 
@@ -15,6 +16,7 @@ export function App() {
       <Route path="/" element={<TodayPage />} />
       <Route path="/ideas/new" element={<NewIdeaPage />} />
       <Route path="/posts/:id" element={<EditorPage />} />
+      <Route path="/posts/:id/plan-week" element={<PlanWeekPage />} />
       <Route path="/calendar" element={<CalendarPage />} />
       <Route path="/goals" element={<GoalsPage />} />
       <Route path="/review" element={<WeeklyReviewPage />} />

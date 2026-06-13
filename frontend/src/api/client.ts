@@ -1,6 +1,7 @@
 import type {
   CalendarView,
   Commitments,
+  Format,
   GoalsView,
   MarkReadyResponse,
   Platform,
@@ -77,6 +78,16 @@ export function repurpose(id: string, platform: Platform): Promise<PostView> {
     method: 'POST',
     body: JSON.stringify({ platform }),
   }).then((r) => r.post);
+}
+
+export function planWeek(
+  postId: string,
+  pieces: { platform: Platform; format: Format; targetDatetime: string | null }[],
+): Promise<{ created: number }> {
+  return request<{ created: number }>(`/api/posts/${postId}/plan-week`, {
+    method: 'POST',
+    body: JSON.stringify({ pieces }),
+  });
 }
 
 export function fetchCalendar(): Promise<CalendarView> {

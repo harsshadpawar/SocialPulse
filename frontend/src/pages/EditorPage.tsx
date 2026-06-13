@@ -381,6 +381,19 @@ export function EditorPage() {
           )}
         </div>
 
+        {/* v0.2g (D-53): turn this idea into a full week of platform-ready pieces. */}
+        <div className="mt-8 rounded-xl border border-ink/10 bg-paper px-7 py-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-dim">Plan the week</p>
+              <p className="mt-1.5 text-[13.5px] text-dim">Turn this idea into a set of platform-ready pieces — you choose how much.</p>
+            </div>
+            <BtnSecondary className="whitespace-nowrap px-5" onClick={() => navigate(`/posts/${post.id}/plan-week`)}>
+              Plan week →
+            </BtnSecondary>
+          </div>
+        </div>
+
         {/* v0.2c (D-37): repurpose this idea to platforms it isn't on yet. (Posted posts return earlier.) */}
         {post.repurposeTargets.length > 0 && (
           <div className="mt-8 rounded-xl border border-ink/10 bg-paper px-7 py-5">

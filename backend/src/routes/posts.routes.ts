@@ -1,7 +1,16 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { parseOr400 } from '../middleware/validate';
-import { acknowledgeMissed, getPostView, markPosted, markReady, quickStart, repurpose, updatePost } from '../services/posts.service';
+import {
+  acknowledgeMissed,
+  getPostView,
+  markPosted,
+  markReady,
+  planWeek,
+  quickStart,
+  repurpose,
+  updatePost,
+} from '../services/posts.service';
 
 const IdParamSchema = z.object({ id: z.string().uuid('Not a valid post id.') });
 
@@ -26,6 +35,25 @@ const MarkPostedSchema = z
   .strict();
 
 const RepurposeSchema = z.object({ platform: z.enum(['linkedin', 'x', 'youtube', 'instagram']) }).strict();
+
+const PLATFORM_ENUM = z.enum(['linkedin', 'x', 'youtube', 'instagram']);
+const FORMAT_ENUM = z.enum(['text_post', 'short_post', 'short_video', 'reel', 'thread', 'carousel', 'video', 'long_video', 'image']);
+const PlanWeekSchema = z
+  .object({
+    pieces: z
+      .array(
+        z
+          .object({
+            platform: PLATFORM_ENUM,
+            format: FORMAT_ENUM,
+            targetDatetime: z.string().datetime({ offset: true }).nullable().optional(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(15),
+  })
+  .strict();
 
 export const postsRouter = Router();
 
@@ -68,6 +96,18 @@ postsRouter.post('/api/posts/:id/posted', (req, res, next) => {
     }))
     .then(({ params, body }) => markPosted(params.id, body, now))
     .then(({ post }) => res.json({ post }))
+    .catch(next);
+});
+
+postsRouter.post('/api/posts/:id/plan-week', (req, res, next) => {
+  const now = new Date();
+  Promise.resolve()
+    .then(() => ({
+      params: parseOr400(IdParamSchema, req.params),
+      body: parseOr400(PlanWeekSchema, req.body),
+    }))
+    .then(({ params, body }) => planWeek(params.id, body.pieces, now))
+    .then((result) => res.json(result))
     .catch(next);
 });
 
