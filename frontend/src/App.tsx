@@ -4,6 +4,7 @@ import { EditorPage } from './pages/EditorPage';
 import { GoalsPage } from './pages/GoalsPage';
 import { NewIdeaPage } from './pages/NewIdeaPage';
 import { PlanWeekPage } from './pages/PlanWeekPage';
+import { ReportsPage } from './pages/ReportsPage';
 import { TodayPage } from './pages/TodayPage';
 import { WeeklyReviewPage } from './pages/WeeklyReviewPage';
 
@@ -19,6 +20,7 @@ export function App() {
       <Route path="/posts/:id/plan-week" element={<PlanWeekPage />} />
       <Route path="/calendar" element={<CalendarPage />} />
       <Route path="/goals" element={<GoalsPage />} />
+      <Route path="/reports" element={<ReportsPage />} />
       <Route path="/review" element={<WeeklyReviewPage />} />
     </Routes>
   );

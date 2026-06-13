@@ -8,9 +8,10 @@ const TABS = [
   { id: 'today', label: 'Today', to: '/' },
   { id: 'calendar', label: 'Calendar', to: '/calendar' },
   { id: 'goals', label: 'Goals', to: '/goals' },
+  { id: 'reports', label: 'Reports', to: '/reports' },
 ] as const;
 
-export function NavHeader({ active, right }: { active: 'today' | 'calendar' | 'goals'; right?: ReactNode }) {
+export function NavHeader({ active, right }: { active: 'today' | 'calendar' | 'goals' | 'reports'; right?: ReactNode }) {
   return (
     <header className="border-b border-ink/10 px-12">
       <div className="flex items-center justify-between py-5">

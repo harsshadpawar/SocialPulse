@@ -2,6 +2,40 @@
 // The frontend renders these; it NEVER re-derives status (ADR-3).
 
 export type Platform = 'linkedin' | 'x' | 'youtube' | 'instagram';
+
+// v0.2k (D-64): Consistency Reports — server derives state + numbers, client owns the calm words (ADR-3).
+export type ReportState = 'early' | 'sparse' | 'rough' | 'rich';
+export type PatternKind = 'reliable_weekday' | 'prepare_ahead_helps';
+export interface MonthRollup {
+  key: string;
+  name: string;
+  weeksHit: number;
+  weeksOf: number;
+  posts: number;
+  onTimePct: number;
+}
+export interface PlatformConsistency {
+  platform: Platform;
+  weeksHit: number;
+  weeksOf: number;
+}
+export interface ReportPattern {
+  kind: PatternKind;
+  weekday?: string;
+}
+export interface ReportsView {
+  state: ReportState;
+  windowWeeks: number;
+  streak: number;
+  weekDots: boolean[];
+  trend: number[];
+  capacityLinePct: number;
+  months: MonthRollup[];
+  platforms: PlatformConsistency[];
+  patterns: ReportPattern[];
+  postsThisMonth: number;
+  weeksHitInWindow: number;
+}
 export type Format =
   | 'text_post'
   | 'short_post'
@@ -114,6 +148,7 @@ export interface CalPostView {
   id: string;
   ideaTitle: string;
   platform: Platform;
+  format: Format;
   targetDatetime: string;
   readiness: Readiness;
   postingStatus: PostingStatus;
@@ -147,6 +182,7 @@ export interface CompactPost {
   id: string;
   ideaTitle: string;
   platform: Platform;
+  format: Format;
   postingStatus: PostingStatus;
   cardState: CardState;
   missed: boolean;

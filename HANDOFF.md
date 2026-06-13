@@ -12,7 +12,7 @@ The full execution + planning loop is **built, tested, and verified live**, end 
 Everything is committed and tagged locally. Lineage:
 
 ```
-v0.1.0 → v0.2a → v0.2b → v0.2c → v0.2d → v0.2e → v0.2f → v0.2g → v0.2h → v0.2i → v0.2j   (HEAD = a0ae883 until you commit v0.2i + v0.2j)
+v0.1.0 → v0.2a → v0.2b → v0.2c → v0.2d → v0.2e → v0.2f → v0.2g → v0.2h → v0.2i → v0.2j → v0.2k   (HEAD = a0ae883 until you commit v0.2i + v0.2j + v0.2k)
 ```
 
 - **96 backend tests green**, backend + frontend typechecks clean.
@@ -35,6 +35,7 @@ v0.1.0 → v0.2a → v0.2b → v0.2c → v0.2d → v0.2e → v0.2f → v0.2g →
 | v0.2h | Calendar Month view + Week/Month toggle + ‹ › / Today navigation (D-54); effort/realism use a `weekRef`, status always vs real now | none |
 | v0.2i | Plan Week fixes — `Shell` hoisted (no remount/focus loss), grammar (D-55); capture routes to Plan Week (D-56); hub context row so the proposal is never empty / counts new pieces only (D-57); **calendar cards show "Platform · Format" so pieces are identifiable — fixes the "adding wrongly / not inserting" report (insert verified: 1 click = 1 row) (D-58); Plan Week schedules date **and time** via datetime-local, default 09:00 (D-59)**; verified live | none |
 | v0.2j | **Plan Week rebuilt to the approved hi-fi**: custom Instrument date+time picker (D-60); **Apply-to-all scheduling — per-row edits persist, the reset bug designed out** (D-61); calendar month ×count badge (D-62); pinned hub caption + capture "just write the post" + calm drafts/error/loading states + mobile (D-63). Live-verified incl. a StrictMode Apply-spread fix | none |
+| v0.2k | **Consistency Reports** — new 4th nav surface (D-64): pure `deriveConsistencyReport` (12-wk completion trend, light-cadence streak, 6-mo rollup, per-platform, gentle patterns; `GET /api/reports`); calm/non-punitive ReportsPage, shared green scale, never red; all states. 102 backend tests green, tsc clean; live click-through pending dev restart | none |
 
 Decision records live in `docs/decisions-*.md` (D-30 … D-54, incl. `decisions-v0.2f-editable-formats.md`,
 `decisions-v0.2g-plan-week.md`, `decisions-v0.2h-calendar-nav.md`, `decisions-phase2-weekly-review.md`)
@@ -104,6 +105,17 @@ on things only you can unlock:
 - **Permanent "Review" nav item** — only if usage proves it deserves first-class navigation (D-50).
 - **Calendar drag-to-reschedule** and real overload "reduce/drop" actions — "Should", not built (D-45).
 - **Media management** and the **AI-copy / analytics / publishing** phases — all parked (see "Why … can't continue").
+
+## Next phase (queued by the owner, 2026-06-13)
+
+- **Consistency reports — over weeks & months (NEXT BUILD).** A read/aggregation layer over data we
+  already capture (no external APIs needed): the append-only `adherence_event` log (ADR-5), the shared
+  `deriveWeeklyMetrics` (completion %, on-time %, execution score, prepared-ahead), and Weekly Review
+  reflections. Show streaks and trends in the calm, non-punitive voice — never red "you failed" bars.
+  Buildable now without the blocked integrations. Needs an architect framing pass before build.
+- **Mobile layout polish (next phase).** The v0.2j rebuild already ships responsive row-stacking + a
+  sticky footer for Plan Week; deferred work is polishing/QA on a real device and extending the same
+  responsive treatment to Today / Calendar / Goals.
 
 ---
 

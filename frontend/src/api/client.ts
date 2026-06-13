@@ -8,6 +8,7 @@ import type {
   Platform,
   PostView,
   Reflection,
+  ReportsView,
   TargetView,
   TodayView,
   UpdatePostInput,
@@ -97,6 +98,10 @@ export function fetchCalendar(anchor?: string): Promise<CalendarView> {
 
 export function fetchCalendarMonth(anchor?: string): Promise<MonthView> {
   return request<MonthView>(`/api/calendar/month${anchor ? `?anchor=${encodeURIComponent(anchor)}` : ''}`);
+}
+
+export function fetchReports(): Promise<ReportsView> {
+  return request<ReportsView>('/api/reports');
 }
 
 export function fetchGoals(): Promise<GoalsView> {
