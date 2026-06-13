@@ -13,14 +13,18 @@ export function NewIdeaPage() {
   const queryClient = useQueryClient();
 
   const create = useMutation({
-    mutationFn: createIdea,
-    onSuccess: (post) => {
+    mutationFn: (v: { title: string; coreMessage: string; toEditor: boolean }) =>
+      createIdea({ title: v.title, coreMessage: v.coreMessage }),
+    onSuccess: (post, v) => {
       void queryClient.invalidateQueries({ queryKey: ['today'] });
-      navigate(`/posts/${post.id}`);
+      navigate(v.toEditor ? `/posts/${post.id}` : `/posts/${post.id}/plan-week`);
     },
   });
 
   const incomplete = title.trim() === '' || coreMessage.trim() === '';
+  const submit = (toEditor: boolean) => {
+    if (!incomplete) create.mutate({ title: title.trim(), coreMessage: coreMessage.trim(), toEditor });
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-paper font-sans text-ink antialiased">
@@ -34,7 +38,7 @@ export function NewIdeaPage() {
             className="flex flex-col gap-6 px-8 py-7"
             onSubmit={(e) => {
               e.preventDefault();
-              if (!incomplete) create.mutate({ title: title.trim(), coreMessage: coreMessage.trim() });
+              submit(false);
             }}
           >
             <IField label="Title" value={title} onChange={setTitle} placeholder="“AI credit scoring must be explainable”" />
@@ -51,6 +55,17 @@ export function NewIdeaPage() {
             {create.isError && <p className="text-[13.5px] text-dim">{create.error.message}</p>}
           </form>
         </ICard>
+        <p className="mt-4 text-center text-[13.5px] text-dim">
+          or{' '}
+          <button
+            type="button"
+            disabled={incomplete || create.isPending}
+            onClick={() => submit(true)}
+            className="font-medium text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink disabled:text-dim disabled:no-underline"
+          >
+            just write the post
+          </button>
+        </p>
       </main>
     </div>
   );

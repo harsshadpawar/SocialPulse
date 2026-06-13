@@ -23,6 +23,7 @@ import {
   realismFix,
 } from '../lib/microcopy';
 import { PLATFORM_META } from '../lib/platform';
+import { FORMAT_META } from '../lib/formatMeta';
 
 const PIP_GREEN: Record<number, string> = { 1: 'oklch(72% 0.09 155)', 2: 'oklch(58% 0.1 155)', 3: 'oklch(46% 0.11 155)' };
 const EFFORT_N: Record<EffortScore, number> = { low: 1, medium: 2, high: 3 };
@@ -101,7 +102,7 @@ function CalPost({ post, onOpen }: { post: CalPostView; onOpen: () => void }) {
     <button type="button" onClick={onOpen} className={`flex flex-col gap-1.5 rounded-lg border p-2.5 text-left transition hover:border-ink/25 ${post.missed ? 'border-dashed border-missed/40 bg-missed/5' : 'border-ink/12 bg-white'}`}>
       <span className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-dim">
         <span className="size-[6px] rounded-full" style={{ backgroundColor: meta.color }} />
-        {meta.label}
+        {meta.label} · {FORMAT_META[post.format].label}
       </span>
       <p className="text-[12.5px] font-medium leading-snug">{post.ideaTitle}</p>
       <div className="flex items-center justify-between pt-0.5">
@@ -111,6 +112,22 @@ function CalPost({ post, onOpen }: { post: CalPostView; onOpen: () => void }) {
       <div><StatusPill tone={tone}><span className="text-[11px]">{label}</span></StatusPill></div>
     </button>
   );
+}
+
+// Collapse multiple pieces of the same idea into one line + ×count (D-62) — no duplicate-looking rows.
+function groupByIdea(posts: CompactPost[]): { first: CompactPost; count: number }[] {
+  const groups: { first: CompactPost; count: number }[] = [];
+  const byTitle = new Map<string, { first: CompactPost; count: number }>();
+  for (const p of posts) {
+    const g = byTitle.get(p.ideaTitle);
+    if (g) g.count += 1;
+    else {
+      const ng = { first: p, count: 1 };
+      byTitle.set(p.ideaTitle, ng);
+      groups.push(ng);
+    }
+  }
+  return groups;
 }
 
 // Month cell — compact, status-coloured left border.
@@ -126,13 +143,14 @@ function MonthCell({ day, onOpen }: { day: MonthDay; onOpen: (id: string) => voi
     <div className={`flex min-h-[96px] flex-col rounded-lg border p-1.5 ${day.isToday ? 'border-accent/30 bg-accent/[0.03]' : day.inMonth ? 'border-ink/10' : 'border-ink/5 bg-ink/[0.015]'}`}>
       <div className={`px-1 text-[11px] font-semibold tabular-nums ${day.isToday ? 'text-accent' : day.inMonth ? 'text-ink/70' : 'text-ink/30'}`}>{day.dayNum}</div>
       <div className="mt-1 flex flex-col gap-1">
-        {day.posts.slice(0, 3).map((p) => (
-          <button key={p.id} type="button" onClick={() => onOpen(p.id)} className={`flex items-center gap-1 rounded-sm border-l-2 bg-white px-1 py-0.5 text-left hover:bg-ink/5 ${monthTone(p)}`}>
-            <span className="size-[5px] shrink-0 rounded-full" style={{ backgroundColor: PLATFORM_META[p.platform].color }} />
-            <span className="truncate text-[10.5px] leading-tight">{p.ideaTitle}</span>
+        {groupByIdea(day.posts).slice(0, 3).map((g) => (
+          <button key={g.first.id} type="button" onClick={() => onOpen(g.first.id)} className={`flex items-center gap-1 rounded-sm border-l-2 bg-white px-1 py-0.5 text-left hover:bg-ink/5 ${monthTone(g.first)}`}>
+            <span className="size-[5px] shrink-0 rounded-full" style={{ backgroundColor: PLATFORM_META[g.first.platform].color }} />
+            <span className="truncate text-[10.5px] leading-tight">{g.first.ideaTitle}</span>
+            {g.count > 1 && <span className="ml-auto shrink-0 rounded bg-ink/8 px-1 text-[9.5px] font-bold tabular-nums text-ink/70">×{g.count}</span>}
           </button>
         ))}
-        {day.posts.length > 3 && <span className="px-1 text-[10px] text-dim">+{day.posts.length - 3} more</span>}
+        {groupByIdea(day.posts).length > 3 && <span className="px-1 text-[10px] text-dim">+{groupByIdea(day.posts).length - 3} more</span>}
       </div>
     </div>
   );
