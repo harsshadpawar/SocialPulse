@@ -29,6 +29,16 @@ function tomorrowKey(): string {
 
 const EFFORT_DOT: Record<string, string> = { low: 'text-dim', medium: 'text-accent', high: 'text-late' };
 
+// Module-level so it isn't re-created each render (which would remount children and drop input focus).
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-screen flex-col bg-paper font-sans text-ink antialiased">
+      <IHeader back="Today" right="Plan week" />
+      {children}
+    </div>
+  );
+}
+
 export function PlanWeekPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -72,15 +82,6 @@ export function PlanWeekPage() {
       navigate('/calendar');
     },
   });
-
-  function Shell({ children }: { children: React.ReactNode }) {
-    return (
-      <div className="flex min-h-screen flex-col bg-paper font-sans text-ink antialiased">
-        <IHeader back="Today" right="Plan week" />
-        {children}
-      </div>
-    );
-  }
 
   if (isPending) return <Shell><p className="px-6 pt-12 text-[15px] text-dim">…</p></Shell>;
   if (isError || !post) return <Shell><p className="px-6 pt-12 text-[15px] text-dim">Couldn't load this idea.</p></Shell>;
@@ -149,6 +150,14 @@ export function PlanWeekPage() {
           </>
         )}
 
+        {/* Empty proposal — e.g. only the hub's own platform at Light (its piece is excluded). */}
+        {platforms.length > 0 && pieces.length === 0 && (
+          <p className="mt-8 max-w-[60ch] text-[14px] leading-relaxed text-dim">
+            Nothing new to add yet — your idea is already a {FORMAT_META[post.format].label} on {PLATFORM_META[post.platform].label}. Add
+            another platform, or bump the cadence to Medium or Heavy for more pieces.
+          </p>
+        )}
+
         {/* Step 3 — proposed pieces */}
         {platforms.length > 0 && pieces.length > 0 && (
           <>
@@ -195,7 +204,7 @@ export function PlanWeekPage() {
 
             {/* Live effort guardrail (D-53 §4) */}
             <p className={`mt-3 text-center text-[13px] font-medium ${loadTone}`}>
-              {active.length} {active.length === 1 ? 'piece' : 'pieces'} · {totalPts} effort points · {load} load
+              {active.length} {active.length === 1 ? 'piece' : 'pieces'} · {totalPts} effort {totalPts === 1 ? 'point' : 'points'} · {load} load
               {load === 'full' && <span className="font-normal"> — heavy; consider removing one.</span>}
             </p>
 
